@@ -1,0 +1,232 @@
+# MongoDB Atlas Cluster Automation
+
+A web-based dashboard for managing MongoDB Atlas clusters that allows users to view, filter, and configure automated pause schedules across multiple projects to optimize resource usage and reduce costs.
+
+## Overview
+
+This application provides a user-friendly interface for managing pause schedules of MongoDB Atlas clusters across multiple projects. It helps optimize resource usage and reduce costs by automating the pausing of clusters when they're not needed.
+
+## Architecture
+
+The application consists of three main components:
+
+1. **Web UI**: A responsive frontend built with HTML, CSS (Bootstrap), and vanilla JavaScript
+2. **REST API**: A Node.js/Express backend that manages data in MongoDB
+3. **Atlas App Services**: Serverless functions and triggers that execute the actual cluster pausing logic
+
+### Component Details
+
+#### Web UI
+- Built with Bootstrap 5 for responsive design
+- Interactive dashboard with filtering and sorting capabilities
+- Project and cluster management interfaces
+- Pause schedule configuration modal
+
+#### REST API (Express.js)
+- CRUD operations for projects and clusters
+- Business logic for pause schedule management
+- Validation and error handling
+
+#### Atlas App Services
+- Serverless functions for interacting with Atlas Admin API
+- Database triggers for audit logging
+- Scheduled triggers for automatic cluster pausing based on configured schedules
+
+## Data Model
+
+The application uses MongoDB with the following collections:
+
+### cluster_automation
+Stores project and cluster information with scheduling metadata
+```javascript
+{
+  _id: ObjectId,
+  projectId: String,
+  projectName: String,
+  clusters: [
+    {
+      name: String,
+      description: String,
+      instanceSize: String,
+      mongoDBVersion: String,
+      paused: Boolean,
+      mongoOwner: String,
+      customerContact: String,
+      createDate: String,
+      ageInDays: Number,
+      pauseDaysOfWeek: [Number],  // 0-6 for Sunday-Saturday
+      pauseHour: Number,          // 0-23 hour of the day
+      timezone: String,
+      status: String
+    }
+  ],
+  updatedAt: Date
+}
+```
+
+### activity_logs
+Tracks all operations performed on clusters
+```javascript
+{
+  _id: ObjectId,
+  projectId: String,
+  clusterName: String,
+  action: String,      // "pause", "resume", "configure"
+  performedBy: String, // User or "system" for automated actions
+  timestamp: Date,
+  details: Object      // Additional context about the action
+}
+```
+
+## Key Features
+
+- **Multi-Project Dashboard**: View and manage clusters across multiple Atlas projects
+- **Filtering & Search**: Filter clusters by project, status, instance size, and more
+- **Pause Scheduling**: Configure automatic pause schedules based on day of week and time
+- **Timezone Support**: Configure schedules in various timezones
+- **Export Options**: Export cluster data as CSV or JSON
+- **Responsive Design**: Works on desktop and mobile devices
+
+## Atlas App Services Functions & Triggers
+
+The application leverages MongoDB Atlas App Services for automation:
+
+1. **Scheduled Trigger - Cluster Pause Check**
+   - Runs every hour
+   - Checks for clusters due to be paused based on schedule
+   - Calls Atlas Admin API to pause matching clusters
+   - Logs actions to activity_logs collection
+
+2. **Database Trigger - Audit Logging**
+   - Fires on updates to cluster_automation collection
+   - Records all changes to configurations in activity_logs
+
+3. **Function - Atlas API Integration**
+   - Interacts with Atlas Admin API to pause/resume clusters
+   - Handles authentication and error handling
+
+4. **Scheduled Trigger - Cluster Inventory Sync**
+   - Runs daily to keep the cluster inventory in sync with Atlas
+   - Adds new clusters, updates existing ones, and marks deleted clusters
+   - Enriches cluster data with additional metadata
+
+## Enhanced Features & Implementation
+
+This project is an upgraded version of the solution described in [MongoDB's developer tutorial](https://www.mongodb.com/developer/products/atlas/atlas-cluster-automation-using-scheduled-triggers/), with the following enhancements:
+
+### Data-Driven Automation
+- Cluster pause/resume schedules are stored in MongoDB collections rather than hardcoded in trigger functions
+- Each cluster can have its own custom schedule with preferred pause and optional resume times
+- Supports complex scheduling with timezone awareness
+
+### Comprehensive Logging
+- All cluster state changes (pause, resume, create, delete, scale) are logged
+- Detailed audit trail for compliance and troubleshooting
+- Activity logs can be analyzed for usage patterns and optimization opportunities
+
+### Automated Inventory Management
+- Automatic synchronization between Atlas clusters and the application's database
+- Detects new clusters, updates existing ones, and identifies deleted clusters
+- No manual inventory management required
+
+### Enhanced Metadata
+- Extends Atlas cluster information with custom fields:
+  - Owner contact information
+  - Department/team allocation
+  - Cluster age and creation date
+  - Custom descriptions and notes
+  - Usage status (production, development, testing)
+
+### Atlas Charts Integration
+- Visualize cluster inventory with custom dashboards
+- Track resource utilization and cost savings
+- Monitor pause/resume patterns and optimize scheduling
+
+### Implementation Guide
+
+#### App Services Export/Import
+The complete App Services application is included in this repository and can be imported following these steps:
+
+1. Download the App Services application export from the `app_services` directory
+2. Navigate to your Atlas project and create a new App Services application
+3. Use the "Import from file" option and select the exported application
+4. Configure your Atlas API credentials in the App Services Values/Secrets
+5. Deploy the application
+
+#### Key App Services Components
+
+**Functions:**
+- `processScheduledClusterOperations`: Processes clusters according to their pause schedules 
+- `syncProjectClusters`: Syncs cluster inventory with Atlas
+- `logClusterAutomationChange`: Records all changes to cluster configurations
+- `setClusterPauseState`: Helper function to pause or resume a cluster
+- `modifyCluster`: Helper function to modify cluster attributes
+
+**Triggers:**
+- `enforcePauseScheduleTrigger`: Scheduled trigger that runs to process clusters according to their pause schedules by calling the `trigger/processScheduledClusterOperations` function
+- `syncProjectClustersTrigger`: Scheduled trigger that runs to sync cluster inventory by calling the `trigger/syncProjectClusters` function
+- `logClusterAutomationChangeTrigger`: Database trigger that fires when cluster configurations change by calling the `trigger/logClusterAutomationChange` function
+
+## Getting Started
+
+### Prerequisites
+- Node.js 16+
+- MongoDB Atlas account
+- Atlas cluster for storing application data
+
+### Installation
+
+1. Clone the repository
+```bash
+git clone https://github.com/your-org/atlas-cluster-automation.git
+cd atlas-cluster-automation
+```
+
+2. Install dependencies
+```bash
+npm install
+```
+
+3. Configure environment variables
+Create a `.env` file with the following:
+```
+MONGODB_URI=mongodb+srv://username:password@your-cluster.mongodb.net/?retryWrites=true&w=majority
+PORT=3000
+```
+
+4. Start the application
+```bash
+npm start
+```
+
+## Deployment
+
+### Backend API
+1. Deploy to your preferred hosting platform (Heroku, AWS, etc.)
+2. Set environment variables for MongoDB connection
+
+### Atlas App Services
+1. Download the App Services application export from the `app_services` directory
+2. Navigate to your Atlas project and create a new App Services application
+3. Use the "Import from file" option and select the exported application
+4. Configure your Atlas API credentials in the App Services Values/Secrets
+5. Deploy the application
+6. Set up the scheduled triggers with appropriate frequencies
+
+### Setting Up Atlas Charts
+1. In your Atlas project, navigate to the Charts tab
+2. Create a new dashboard
+3. Add charts for:
+   - Cluster inventory by status (active/paused)
+   - Cluster inventory by instance size
+   - Cluster activity over time
+   - Cost savings from automated pausing
+4. Share the dashboard with your team
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
