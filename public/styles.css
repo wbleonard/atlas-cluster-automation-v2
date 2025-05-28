@@ -151,6 +151,60 @@ h1, h2, h3, h4, h5, h6 {
     background-color: var(--leafygreen-ui-green);
 }
 
+/* Leafygreen button styling */
+.leafygreen-button {
+    border-radius: 6px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    transition: all 0.15s ease-in-out;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-outline-primary.leafygreen-button {
+    border-color: var(--leafygreen-ui-gray-light);
+    color: var(--leafygreen-ui-gray-dark);
+    background-color: var(--leafygreen-ui-white);
+}
+
+.btn-outline-primary.leafygreen-button:hover {
+    border-color: var(--leafygreen-ui-blue);
+    color: var(--leafygreen-ui-blue);
+    background-color: var(--leafygreen-ui-blue-light);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.btn-primary.leafygreen-button {
+    background-color: var(--leafygreen-ui-blue);
+    border-color: var(--leafygreen-ui-blue);
+    color: var(--leafygreen-ui-white);
+}
+
+.btn-primary.leafygreen-button:hover {
+    background-color: var(--leafygreen-ui-blue-dark);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Leafygreen dropdown menu */
+.leafygreen-dropdown-menu {
+    border-radius: 6px;
+    border: 1px solid var(--leafygreen-ui-gray-light);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    padding: 4px 0;
+}
+
+.leafygreen-dropdown-menu .dropdown-item {
+    color: var(--leafygreen-ui-gray-dark);
+    padding: calc(var(--leafygreen-spacing-unit)) calc(var(--leafygreen-spacing-unit) * 2);
+    font-size: 0.9rem;
+}
+
+.leafygreen-dropdown-menu .dropdown-item:hover {
+    background-color: var(--leafygreen-ui-blue-light);
+    color: var(--leafygreen-ui-blue);
+}
+
 /* Navigation styles */
 .nav-link {
     color: var(--leafygreen-ui-gray-dark);
@@ -170,9 +224,10 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Form controls */
 .form-control {
-    border-radius: 4px;
+    border-radius: 6px;
     border: 1px solid var(--leafygreen-ui-gray);
     padding: calc(var(--leafygreen-spacing-unit)) calc(var(--leafygreen-spacing-unit) * 1.5);
+    transition: all 0.15s ease-in-out;
 }
 
 .form-control:focus {
@@ -181,9 +236,10 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .form-select {
-    border-radius: 4px;
+    border-radius: 6px;
     border: 1px solid var(--leafygreen-ui-gray);
     padding: calc(var(--leafygreen-spacing-unit)) calc(var(--leafygreen-spacing-unit) * 1.5);
+    transition: all 0.15s ease-in-out;
 }
 
 .form-select:focus {
@@ -191,10 +247,59 @@ h1, h2, h3, h4, h5, h6 {
     box-shadow: 0 0 0 2px rgba(1, 107, 248, 0.2);
 }
 
+.leafygreen-select {
+    background-color: var(--leafygreen-ui-white);
+    border-color: var(--leafygreen-ui-gray-light);
+}
+
+.leafygreen-select:hover {
+    border-color: var(--leafygreen-ui-gray);
+}
+
+.leafygreen-label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--leafygreen-ui-gray-dark);
+    margin-bottom: 4px;
+}
+
 /* Summary page stats cards */
 #statsSummary .card {
     transition: transform 0.2s ease;
     background-color: var(--leafygreen-ui-white);
+}
+
+/* Summary cards with Leafygreen styling */
+.leafygreen-card-light {
+    background-color: var(--leafygreen-ui-white);
+    border: 1px solid var(--leafygreen-ui-gray-light);
+    transition: all 0.2s ease-in-out;
+}
+
+.leafygreen-card-active {
+    background: linear-gradient(135deg, var(--leafygreen-ui-green), #007E45);
+    color: var(--leafygreen-ui-white);
+    border: none;
+}
+
+.leafygreen-card-paused {
+    background: linear-gradient(135deg, var(--leafygreen-ui-gray-dark), #485A63);
+    color: var(--leafygreen-ui-white);
+    border: none;
+}
+
+.leafygreen-card-warning {
+    background: linear-gradient(135deg, var(--leafygreen-ui-yellow), #FFC326);
+    color: var(--leafygreen-ui-black);
+    border: none;
+}
+
+/* Leafygreen card header */
+.leafygreen-card-header {
+    background: linear-gradient(90deg, var(--leafygreen-ui-blue), var(--leafygreen-ui-blue-dark));
+    color: var(--leafygreen-ui-white);
+    border: none;
+    padding: calc(var(--leafygreen-spacing-unit) * 1.5) calc(var(--leafygreen-spacing-unit) * 2);
 }
 
 #statsSummary .card:hover {

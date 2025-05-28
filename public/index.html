@@ -29,14 +29,14 @@
                     <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                         <h5 class="card-title mb-0">All Clusters</h5>
                         <div>
-                            <button id="refreshBtn" class="btn btn-sm btn-light">
+                            <button id="refreshBtn" class="btn btn-sm btn-outline-primary leafygreen-button">
                                 <i class="bi bi-arrow-clockwise"></i> Refresh
                             </button>
                             <div class="dropdown d-inline-block ms-2">
-                                <button class="btn btn-sm btn-light dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                    Export
+                                <button class="btn btn-sm btn-outline-primary leafygreen-button dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bi bi-download"></i> Export
                                 </button>
-                                <ul class="dropdown-menu" aria-labelledby="exportDropdown">
+                                <ul class="dropdown-menu leafygreen-dropdown-menu" aria-labelledby="exportDropdown">
                                     <li><a class="dropdown-item" href="#" id="exportCSV">CSV</a></li>
                                     <li><a class="dropdown-item" href="#" id="exportJSON">JSON</a></li>
                                 </ul>
@@ -52,22 +52,25 @@
                         </div>
                         
                         <!-- Filter and search controls -->
-                        <div class="row mb-3 d-none" id="filterControls">
+                        <div class="row mb-4 d-none" id="filterControls">
                             <div class="col-md-2">
-                                <select id="projectFilter" class="form-select form-select-sm">
+                                <label class="form-label leafygreen-label">Project</label>
+                                <select id="projectFilter" class="form-select form-select-sm leafygreen-select">
                                     <option value="all">All Projects</option>
                                     <!-- Will be populated dynamically -->
                                 </select>
                             </div>
                             <div class="col-md-2">
-                                <select id="statusFilter" class="form-select form-select-sm">
+                                <label class="form-label leafygreen-label">Status</label>
+                                <select id="statusFilter" class="form-select form-select-sm leafygreen-select">
                                     <option value="all">All Statuses</option>
                                     <option value="Active">Active</option>
                                     <option value="Paused">Paused</option>
                                 </select>
                             </div>
                             <div class="col-md-2">
-                                <select id="scheduleFilter" class="form-select form-select-sm">
+                                <label class="form-label leafygreen-label">Schedule</label>
+                                <select id="scheduleFilter" class="form-select form-select-sm leafygreen-select">
                                     <option value="all">All Schedule Status</option>
                                     <option value="true">Has Schedule</option>
                                     <option value="false">No Schedule</option>
@@ -91,7 +94,7 @@
                         <!-- Summary Stats Cards -->
                         <div class="row mb-4 d-none" id="statsSummary">
                             <div class="col-md-3">
-                                <div class="card bg-light">
+                                <div class="card leafygreen-card-light">
                                     <div class="card-body py-2">
                                         <h6 class="card-title">Total Clusters</h6>
                                         <h3 id="totalClusters">0</h3>
@@ -99,7 +102,7 @@
                                 </div>
                             </div>
                             <div class="col-md-3">
-                                <div class="card bg-success text-white">
+                                <div class="card leafygreen-card-active">
                                     <div class="card-body py-2">
                                         <h6 class="card-title">Active Clusters</h6>
                                         <h3 id="activeClusters">0</h3>
@@ -107,7 +110,7 @@
                                 </div>
                             </div>
                             <div class="col-md-3">
-                                <div class="card bg-danger text-white">
+                                <div class="card leafygreen-card-paused">
                                     <div class="card-body py-2">
                                         <h6 class="card-title">Paused Clusters</h6>
                                         <h3 id="pausedClusters">0</h3>
@@ -115,7 +118,7 @@
                                 </div>
                             </div>
                             <div class="col-md-3">
-                                <div class="card bg-warning text-dark">
+                                <div class="card leafygreen-card-warning">
                                     <div class="card-body py-2">
                                         <h6 class="card-title">No Schedule</h6>
                                         <h3 id="noScheduleClusters">0</h3>
