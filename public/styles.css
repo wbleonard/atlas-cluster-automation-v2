@@ -84,6 +84,8 @@ h1, h2, h3, h4, h5, h6 {
     padding: calc(var(--leafygreen-spacing-unit) * 1.5);
     border-bottom: 1px solid var(--leafygreen-ui-gray-light);
     vertical-align: middle;
+}
+
 /* Cluster status indicators */
 .cluster-status {
     display: inline-block;
@@ -345,6 +347,23 @@ h1, h2, h3, h4, h5, h6 {
     padding: calc(var(--leafygreen-spacing-unit) * 2);
 }
 
+/* Chart styles */
+.card canvas {
+    max-height: 300px;
+}
+
+#savingsStats h3 {
+    color: var(--leafygreen-green-dark);
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.card-header.leafygreen-card-header {
+    background: linear-gradient(135deg, var(--leafygreen-ui-gray-light), var(--leafygreen-ui-white));
+    border-bottom: 1px solid var(--leafygreen-ui-gray-light);
+    font-weight: 600;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     #filterControls .col-md-3 {
@@ -353,6 +372,14 @@ h1, h2, h3, h4, h5, h6 {
     
     .card {
         margin-bottom: calc(var(--leafygreen-spacing-unit) * 2);
+    }
+    
+    .row.mb-4 [class*="col-"] {
+        margin-bottom: 1rem;
+    }
+    
+    .card canvas {
+        max-height: 250px;
     }
 }
 
