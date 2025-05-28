@@ -1,0 +1,86 @@
+[
+    {
+        "name": "modifyCluster",
+        "private": true,
+        "disable_arg_logs": true
+    },
+    {
+        "name": "trigger/pauseClusters",
+        "private": true,
+        "disable_arg_logs": true
+    },
+    {
+        "name": "trigger/resumeClusters",
+        "private": true,
+        "disable_arg_logs": true
+    },
+    {
+        "name": "trigger/scaleClusterUp",
+        "private": true,
+        "disable_arg_logs": true
+    },
+    {
+        "name": "utility/getProjects",
+        "private": true,
+        "disable_arg_logs": true
+    },
+    {
+        "name": "utility/getProjectClusters",
+        "private": true,
+        "disable_arg_logs": true
+    },
+    {
+        "name": "utility/getProjectCluster",
+        "private": true,
+        "disable_arg_logs": true
+    },
+    {
+        "name": "utility/getClusterOpsCollection",
+        "private": true,
+        "disable_arg_logs": true
+    },
+    {
+        "name": "trigger/syncProjectClusters",
+        "private": false,
+        "disable_arg_logs": true
+    },
+    {
+        "name": "ztrash/enforcePauseSchedule",
+        "private": true,
+        "disable_arg_logs": true
+    },
+    {
+        "name": "utility/reconcileClustersArray",
+        "private": true,
+        "disable_arg_logs": true
+    },
+    {
+        "name": "setClusterPauseState",
+        "private": true,
+        "disable_arg_logs": true
+    },
+    {
+        "name": "utility/getActivityLogsCollection",
+        "private": true,
+        "disable_arg_logs": true
+    },
+    {
+        "name": "trigger/logClusterAutomationChange",
+        "private": true
+    },
+    {
+        "name": "trigger/processScheduledClusterOperations",
+        "private": false,
+        "disable_arg_logs": true
+    },
+    {
+        "name": "ui/getClusterList",
+        "private": false,
+        "disable_arg_logs": true
+    },
+    {
+        "name": "ui/updateClusterMetadata",
+        "private": false,
+        "disable_arg_logs": true
+    }
+]

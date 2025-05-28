@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Generate Pie Chart</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div style="width: 500px; height: 400px;">
+        <canvas id="statusChart"></canvas>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('statusChart').getContext('2d');
+            const statusChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['Active Clusters (64%)', 'Paused Clusters (36%)'],
+                    datasets: [{
+                        data: [14, 8],
+                        backgroundColor: [
+                            '#4CAF50',  // Green for active
+                            '#9E9E9E'   // Gray for paused
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: {
+                                    size: 14
+                                }
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Cluster Status Distribution',
+                            font: {
+                                size: 18
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // You can save this as an image in the browser
+        });
+    </script>
+</body>
+</html>

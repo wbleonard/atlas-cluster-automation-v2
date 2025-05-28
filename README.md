@@ -1,6 +1,8 @@
-# MongoDB Atlas Cluster Automation
+# MongoDB Atlas Cluster Automation V2
 
 A web-based dashboard for managing MongoDB Atlas clusters that allows users to view, filter, and configure automated pause schedules across multiple projects to optimize resource usage and reduce costs.
+
+![](images/clusters-summary.png)
 
 ## Overview
 
@@ -86,6 +88,9 @@ Tracks all operations performed on clusters
 - **Timezone Support**: Configure schedules in various timezones
 - **Export Options**: Export cluster data as CSV or JSON
 - **Responsive Design**: Works on desktop and mobile devices
+- **Data Visualization**: Charts showing cluster distribution by status and other metrics
+
+![Cluster Status Distribution](images/clusters-pie-chart.svg)
 
 ## Atlas App Services Functions & Triggers
 
@@ -145,27 +150,49 @@ This project is an upgraded version of the solution described in [MongoDB's deve
 ### Implementation Guide
 
 #### App Services Export/Import
-The complete App Services application is included in this repository and can be imported following these steps:
+The complete App Services application (named "AutomationApp") is included in this repository and can be imported following these steps:
 
-1. Download the App Services application export from the `app_services` directory
+1. Download the App Services application export from the `app-services/AutomationApp` directory
 2. Navigate to your Atlas project and create a new App Services application
 3. Use the "Import from file" option and select the exported application
-4. Configure your Atlas API credentials in the App Services Values/Secrets
+4. Configure your Atlas API credentials in the App Services Values/Secrets (`AtlasPublicKey` and `AtlasPrivateKey`)
 5. Deploy the application
 
 #### Key App Services Components
 
 **Functions:**
-- `processScheduledClusterOperations`: Processes clusters according to their pause schedules 
-- `syncProjectClusters`: Syncs cluster inventory with Atlas
-- `logClusterAutomationChange`: Records all changes to cluster configurations
-- `setClusterPauseState`: Helper function to pause or resume a cluster
-- `modifyCluster`: Helper function to modify cluster attributes
+
+*Trigger Functions:*
+- `trigger/processScheduledClusterOperations`: Processes clusters according to their configured pause schedules (runs hourly)
+- `trigger/syncProjectClusters`: Syncs cluster inventory with Atlas (runs every 15 minutes)
+- `trigger/logClusterAutomationChange`: Records changes to cluster configurations in activity logs
+- `trigger/pauseClusters`: Pauses all clusters in specified projects (optional)
+- `trigger/resumeClusters`: Resumes all clusters in specified projects (optional)
+- `trigger/scaleClusterUp`: Used for scaling up clusters (optional)
+
+*Helper Functions:*
+- `setClusterPauseState`: Pauses or resumes a specific cluster
+- `modifyCluster`: Modifies cluster attributes through Atlas API
+
+*Utility Functions:*
+- `utility/getClusterOpsCollection`: Gets a handle to the cluster_automation collection
+- `utility/getActivityLogsCollection`: Gets a handle to the activity_logs collection
+- `utility/getProjectCluster`: Retrieves a specific cluster from a project
+- `utility/getProjectClusters`: Retrieves all clusters for a project
+- `utility/getProjects`: Retrieves all projects from Atlas
+- `utility/reconcileClustersArray`: Reconciles local and Atlas cluster data
+
+*UI Functions:*
+- `ui/getClusterList`: Retrieves cluster data for the UI
+- `ui/updateClusterMetadata`: Updates cluster metadata from the UI
 
 **Triggers:**
-- `enforcePauseScheduleTrigger`: Scheduled trigger that runs to process clusters according to their pause schedules by calling the `trigger/processScheduledClusterOperations` function
-- `syncProjectClustersTrigger`: Scheduled trigger that runs to sync cluster inventory by calling the `trigger/syncProjectClusters` function
+- `enforcePauseScheduleTrigger`: Scheduled trigger that runs hourly (every hour) to process clusters according to their pause schedules by calling the `trigger/processScheduledClusterOperations` function
+- `syncProjectClustersTrigger`: Scheduled trigger that runs every 15 minutes to sync cluster inventory by calling the `trigger/syncProjectClusters` function
 - `logClusterAutomationChangeTrigger`: Database trigger that fires when cluster configurations change by calling the `trigger/logClusterAutomationChange` function
+- `pauseClustersTrigger`: Optional scheduled trigger (8:00 AM) that can be enabled to pause all clusters
+- `resumeClusters`: Optional scheduled trigger (12:00 PM Mon-Fri) that can be enabled to resume all clusters
+- `scaleClusterUp`: Optional trigger for scaling up clusters
 
 ## Getting Started
 
@@ -178,8 +205,8 @@ The complete App Services application is included in this repository and can be 
 
 1. Clone the repository
 ```bash
-git clone https://github.com/your-org/atlas-cluster-automation.git
-cd atlas-cluster-automation
+git clone https://github.com/wbleonard/atlas-cluster-automation-v2.git
+cd atlas-cluster-automation-v2
 ```
 
 2. Install dependencies
@@ -206,10 +233,10 @@ npm start
 2. Set environment variables for MongoDB connection
 
 ### Atlas App Services
-1. Download the App Services application export from the `app_services` directory
+1. Download the App Services application export from the `app-services/AutomationApp` directory
 2. Navigate to your Atlas project and create a new App Services application
 3. Use the "Import from file" option and select the exported application
-4. Configure your Atlas API credentials in the App Services Values/Secrets
+4. Configure your Atlas API credentials in the App Services Values/Secrets (`AtlasPublicKey` and `AtlasPrivateKey`)
 5. Deploy the application
 6. Set up the scheduled triggers with appropriate frequencies
 

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clusters Status Pie Chart</title>
+    <link rel="icon" type="image/png" href="images/favicon.png">
+    <link rel="shortcut icon" type="image/x-icon" href="images/favicon.ico">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container my-4">
+        <header class="mb-4 text-center">
+            <h1>MongoDB Atlas Clusters Status</h1>
+            <p class="lead">Distribution of Active vs. Paused clusters</p>
+            <nav class="nav justify-content-center mb-4">
+                <a class="nav-link" href="index.html">Clusters Summary</a>
+                <a class="nav-link" href="manage.html">Schedule Manager</a>
+                <a class="nav-link active" href="charts.html">Charts</a>
+            </nav>
+        </header>
+
+        <div class="row">
+            <div class="col-md-6 mx-auto">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title">Clusters by Status</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="statusChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let statusChart;
+
+        // Create the chart with placeholder data
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('statusChart').getContext('2d');
+            statusChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['Active Clusters', 'Paused Clusters'],
+                    datasets: [{
+                        data: [0, 0], // Will be populated with real data
+                        backgroundColor: [
+                            '#4CAF50',  // Green for active
+                            '#9E9E9E'   // Gray for paused
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    const total = context.dataset.data.reduce((acc, val) => acc + val, 0);
+                                    const percentage = Math.round((value / total) * 100);
+                                    return `${label}: ${value} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Fetch and update with real data
+            fetchClusterStatusData();
+        });
+
+        async function fetchClusterStatusData() {
+            try {
+                const response = await fetch('/api/clusters/status-summary');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch data');
+                }
+                
+                const data = await response.json();
+                updateChart(data.activeCount, data.pausedCount);
+                
+                // Add totals below the chart
+                const chartContainer = document.querySelector('.card-body');
+                const totalInfo = document.createElement('div');
+                totalInfo.className = 'text-center mt-3';
+                totalInfo.innerHTML = `
+                    <p><strong>Total Clusters:</strong> ${data.total}</p>
+                    <p><strong>Active:</strong> ${data.activeCount} | <strong>Paused:</strong> ${data.pausedCount}</p>
+                `;
+                chartContainer.appendChild(totalInfo);
+                
+            } catch (error) {
+                console.error('Error fetching cluster status data:', error);
+                // Show error message on the page
+                const chartContainer = document.querySelector('.card-body');
+                chartContainer.innerHTML += `
+                    <div class="alert alert-danger mt-3">
+                        Failed to load chart data. Please try again later.
+                    </div>
+                `;
+            }
+        }
+
+        function updateChart(activeCount, pausedCount) {
+            statusChart.data.datasets[0].data = [activeCount, pausedCount];
+            statusChart.update();
+        }
+    </script>
+</body>
+</html>

@@ -416,6 +416,36 @@ app.delete('/api/projects/:projectId/clusters/:clusterName/schedule', async (req
     }
 });
 
+// API Endpoint to get cluster status summary (active vs paused)
+app.get('/api/clusters/status-summary', async (req, res) => {
+  try {
+    const projects = await Project.find({});
+    
+    let activeCount = 0;
+    let pausedCount = 0;
+    
+    // Count active and paused clusters across all projects
+    projects.forEach(project => {
+      project.clusters.forEach(cluster => {
+        if (cluster.paused) {
+          pausedCount++;
+        } else {
+          activeCount++;
+        }
+      });
+    });
+    
+    res.json({
+      activeCount,
+      pausedCount,
+      total: activeCount + pausedCount
+    });
+  } catch (error) {
+    console.error('Error fetching cluster status summary:', error);
+    res.status(500).json({ error: 'Failed to fetch cluster status summary' });
+  }
+});
+
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);
 });

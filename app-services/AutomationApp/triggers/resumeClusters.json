@@ -1,0 +1,16 @@
+{
+    "name": "resumeClusters",
+    "type": "SCHEDULED",
+    "disabled": true,
+    "config": {
+        "schedule": "0 12 * * 1-5",
+        "skip_catchup_events": false
+    },
+    "event_processors": {
+        "FUNCTION": {
+            "config": {
+                "function_name": "trigger/resumeClusters"
+            }
+        }
+    }
+}

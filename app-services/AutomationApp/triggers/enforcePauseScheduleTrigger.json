@@ -1,0 +1,16 @@
+{
+    "name": "enforcePauseScheduleTrigger",
+    "type": "SCHEDULED",
+    "disabled": false,
+    "config": {
+        "schedule": "0 */1 * * *",
+        "skip_catchup_events": false
+    },
+    "event_processors": {
+        "FUNCTION": {
+            "config": {
+                "function_name": "trigger/processScheduledClusterOperations"
+            }
+        }
+    }
+}

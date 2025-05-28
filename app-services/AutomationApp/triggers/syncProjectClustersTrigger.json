@@ -1,0 +1,16 @@
+{
+    "name": "syncProjectClustersTrigger",
+    "type": "SCHEDULED",
+    "disabled": false,
+    "config": {
+        "schedule": "*/15 * * * *",
+        "skip_catchup_events": false
+    },
+    "event_processors": {
+        "FUNCTION": {
+            "config": {
+                "function_name": "trigger/syncProjectClusters"
+            }
+        }
+    }
+}

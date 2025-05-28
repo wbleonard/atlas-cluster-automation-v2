@@ -1,0 +1,25 @@
+<!-- Sample Pie Chart - This would be generated from your actual data -->
+<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+  <title>Cluster Status Distribution</title>
+  
+  <!-- Pie Chart -->
+  <g transform="translate(200, 120)">
+    <!-- Active Clusters Slice (64%) -->
+    <path d="M0,0 L0,-100 A100,100 0 1,1 -90.63,43.30 Z" fill="#4CAF50" stroke="white" stroke-width="2" />
+    
+    <!-- Paused Clusters Slice (36%) -->
+    <path d="M0,0 L-90.63,43.30 A100,100 0 0,1 0,-100 Z" fill="#9E9E9E" stroke="white" stroke-width="2" />
+  </g>
+  
+  <!-- Legend -->
+  <g transform="translate(100, 250)">
+    <rect x="0" y="0" width="20" height="20" fill="#4CAF50" />
+    <text x="30" y="15" font-family="Arial" font-size="14">Active Clusters (64%)</text>
+    
+    <rect x="200" y="0" width="20" height="20" fill="#9E9E9E" />
+    <text x="230" y="15" font-family="Arial" font-size="14">Paused Clusters (36%)</text>
+  </g>
+  
+  <!-- Title -->
+  <text x="200" y="30" text-anchor="middle" font-family="Arial" font-size="18" font-weight="bold">Cluster Status Distribution</text>
+</svg>

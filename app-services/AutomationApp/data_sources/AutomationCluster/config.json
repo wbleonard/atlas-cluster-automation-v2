@@ -1,0 +1,10 @@
+{
+    "name": "AutomationCluster",
+    "type": "mongodb-atlas",
+    "config": {
+        "clusterName": "AutomationCluster",
+        "readPreference": "primary",
+        "wireProtocolEnabled": false
+    },
+    "version": 1
+}

@@ -1,0 +1,16 @@
+{
+    "name": "pauseClustersTrigger",
+    "type": "SCHEDULED",
+    "disabled": true,
+    "config": {
+        "schedule": "0 08 * * *",
+        "skip_catchup_events": false
+    },
+    "event_processors": {
+        "FUNCTION": {
+            "config": {
+                "function_name": "trigger/pauseClusters"
+            }
+        }
+    }
+}
