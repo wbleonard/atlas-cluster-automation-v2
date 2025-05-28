@@ -3,9 +3,9 @@
  *
  */
 exports = async function() {
-  const serviceName = "AutomationCluster";
-  const dbName = "clusterOps";
-  const collectionName = "activity_logs";
+  const serviceName = await context.values.get("ServiceName");
+  const dbName = await context.values.get("ClusterOpsDBName");
+  const collectionName = await context.values.get("ActivityLogCollectionName");
 
   try {
     const svc = context.services.get(serviceName);

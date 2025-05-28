@@ -149,15 +149,6 @@ This project is an upgraded version of the solution described in [MongoDB's deve
 
 ### Implementation Guide
 
-#### App Services Export/Import
-The complete App Services application (named "AutomationApp") is included in this repository and can be imported following these steps:
-
-1. Download the App Services application export from the `app-services/AutomationApp` directory
-2. Navigate to your Atlas project and create a new App Services application
-3. Use the "Import from file" option and select the exported application
-4. Configure your Atlas API credentials in the App Services Values/Secrets (`AtlasPublicKey` and `AtlasPrivateKey`)
-5. Deploy the application
-
 #### Key App Services Components
 
 **Functions:**
@@ -199,7 +190,7 @@ The complete App Services application (named "AutomationApp") is included in thi
 ### Prerequisites
 - Node.js 16+
 - MongoDB Atlas account
-- Atlas cluster for storing application data
+- Atlas cluster for storing application data.
 
 ### Installation
 
@@ -233,12 +224,54 @@ npm start
 2. Set environment variables for MongoDB connection
 
 ### Atlas App Services
-1. Download the App Services application export from the `app-services/AutomationApp` directory
-2. Navigate to your Atlas project and create a new App Services application
-3. Use the "Import from file" option and select the exported application
-4. Configure your Atlas API credentials in the App Services Values/Secrets (`AtlasPublicKey` and `AtlasPrivateKey`)
-5. Deploy the application
-6. Set up the scheduled triggers with appropriate frequencies
+1. Navigate to your Atlas project and create a new App Services application. You can get there from the "Triggers" menu and then selecting "View All Apps". 
+2. The extract has a dependency on the API Secret Key, thus the import will fail if it is not configured beforehand.
+
+   Use the Values menu on the left to Create a Secret named `AtlasPrivateKeySecret` containing your private key (the secret is not in quotes):
+
+   ![](images/create_secret.webp)
+
+3. Install the The App Services CLI
+
+   ```bash
+   ✗  npm install -g atlas-app-services-cli
+   ```
+
+4. Log into Atlas App Services
+
+   ```bash
+   ✗ appservices login --api-key="<Public API Key>" --private-api-key="<Private API Key>"
+
+   Successfully logged in
+   ```
+ 
+5. Copy the App Services Application ID
+   
+   ![](images/copy-app-id.png)
+
+6. From the `app-service/AutomationApp` sub-directory, run
+
+   ```bash
+   appservices push --remote="<Your App ID>"
+
+   ...
+   A summary of changes
+   ...
+   ? Please confirm the changes shown above Yes
+   Creating draft
+   Pushing changes
+   Deploying draft
+   Deployment complete
+   Successfully pushed app up: <Your App ID>
+
+   ```
+
+6. After the import, replace the AtlasPublicKey with your API public key value.
+
+   ![](images/atlas_public_key.webp)
+
+7. Confirm the Value of your ServiceName by checking the Linked Data Sources. 
+
 
 ### Setting Up Atlas Charts
 1. In your Atlas project, navigate to the Charts tab

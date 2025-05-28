@@ -1,0 +1,5 @@
+{
+    "name": "ActivityLogCollectionName",
+    "value": "activity_logs",
+    "from_secret": false
+}

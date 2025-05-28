@@ -1,0 +1,5 @@
+{
+    "name": "ServiceName",
+    "value": "AutomationCluster",
+    "from_secret": false
+}

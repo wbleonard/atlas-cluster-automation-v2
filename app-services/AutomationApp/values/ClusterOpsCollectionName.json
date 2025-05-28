@@ -1,0 +1,5 @@
+{
+    "name": "ClusterOpsCollectionName",
+    "value": "cluster_automation",
+    "from_secret": false
+}
