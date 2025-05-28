@@ -88,7 +88,10 @@ Tracks all operations performed on clusters
 - **Timezone Support**: Configure schedules in various timezones
 - **Export Options**: Export cluster data as CSV or JSON
 - **Responsive Design**: Works on desktop and mobile devices
-- **Data Visualization**: Charts showing cluster distribution by status and other metrics
+- **Data Visualization**: Interactive charts showing cluster distribution and cost savings
+- **MongoDB Leafygreen UI**: Modern UI design following MongoDB's design principles
+- **Cost Analytics**: Estimated cost savings from automated cluster pausing
+- **GitHub Integration**: Source code available in a public GitHub repository
 
 ![Cluster Status Distribution](images/clusters-pie-chart.svg)
 
@@ -141,6 +144,17 @@ This project is an upgraded version of the solution described in [MongoDB's deve
   - Cluster age and creation date
   - Custom descriptions and notes
   - Usage status (production, development, testing)
+
+### Visualization and Analytics
+- Built-in charts and visualizations:
+  - Status distribution (active vs. paused clusters)
+  - Schedule configuration analysis
+  - Instance size distribution
+  - Project distribution
+  - Cost savings estimation
+- MongoDB Leafygreen design principles for consistent UI
+- Responsive design for both desktop and mobile
+- Real-time data refresh capabilities
 
 ### Atlas Charts Integration
 - Visualize cluster inventory with custom dashboards
