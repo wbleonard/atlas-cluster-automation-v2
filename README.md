@@ -283,6 +283,20 @@ npm start
    - Cost savings from automated pausing
 4. Share the dashboard with your team
 
+For detailed instructions on setting up Atlas Charts dashboards, refer to the [Atlas Charts Setup Guide](docs/atlas-charts-setup.md).
+
+The application includes two types of chart visualizations:
+
+1. **Built-in Charts** (charts.html): Interactive charts powered by Chart.js that display:
+   - Cluster status distribution (active vs. paused)
+   - Schedule configuration distribution
+   - Instance size distribution
+   - Project distribution
+   - Estimated cost savings
+
+2. **Atlas Charts Integration** (atlas-charts.html): A placeholder page where you can embed more advanced visualizations from MongoDB Atlas Charts for deeper insights.
+4. Share the dashboard with your team
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
