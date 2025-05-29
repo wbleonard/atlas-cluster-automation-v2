@@ -44,6 +44,7 @@ const manageProjectBtnContainer = document.getElementById('manageProjectBtnConta
 const projectFilter = document.getElementById('projectFilter');
 const statusFilter = document.getElementById('statusFilter');
 const scheduleFilter = document.getElementById('scheduleFilter');
+const autoscalingFilter = document.getElementById('autoscalingFilter');
 const instanceSizeFilter = document.getElementById('instanceSizeFilter');
 const searchInput = document.getElementById('searchInput');
 
@@ -86,6 +87,7 @@ refreshBtn.addEventListener('click', function() {
         projectFilter.value !== 'all' || 
         statusFilter.value !== 'all' || 
         scheduleFilter.value !== 'all' || 
+        autoscalingFilter.value !== 'all' ||
         instanceSizeFilter.value !== 'all' || 
         searchInput.value.trim() !== '';
     
@@ -96,6 +98,7 @@ refreshBtn.addEventListener('click', function() {
 projectFilter.addEventListener('change', handleProjectFilterChange);
 statusFilter.addEventListener('change', applyFilters);
 scheduleFilter.addEventListener('change', applyFilters);
+autoscalingFilter.addEventListener('change', applyFilters);
 
 // Call loadAllClusters directly (it was previously called from DOMContentLoaded)
 loadAllClusters();
@@ -115,6 +118,7 @@ async function loadAllClusters(preserveFilters = false) {
             project: projectFilter.value,
             status: statusFilter.value,
             schedule: scheduleFilter.value,
+            autoscaling: autoscalingFilter.value,
             instanceSize: instanceSizeFilter.value,
             search: searchInput.value
         };
@@ -178,6 +182,7 @@ async function loadAllClusters(preserveFilters = false) {
             projectFilter.value = currentFilters.project;
             statusFilter.value = currentFilters.status;
             scheduleFilter.value = currentFilters.schedule;
+            autoscalingFilter.value = currentFilters.autoscaling;
             instanceSizeFilter.value = currentFilters.instanceSize;
             searchInput.value = currentFilters.search;
             
@@ -207,6 +212,7 @@ function applyFilters() {
     const projectValue = projectFilter.value;
     const statusValue = statusFilter.value;
     const scheduleValue = scheduleFilter.value;
+    const autoscalingValue = autoscalingFilter.value;
     const sizeValue = instanceSizeFilter.value;
     const searchValue = searchInput.value.toLowerCase();
     
@@ -225,6 +231,14 @@ function applyFilters() {
         if (scheduleValue !== 'all') {
             const hasSchedule = cluster.hasPauseSchedule ? 'true' : 'false';
             if (hasSchedule !== scheduleValue) {
+                return false;
+            }
+        }
+        
+        // Autoscaling filter
+        if (autoscalingValue !== 'all') {
+            const hasAutoscaling = cluster.autoscaling ? 'true' : 'false';
+            if (hasAutoscaling !== autoscalingValue) {
                 return false;
             }
         }
@@ -279,6 +293,11 @@ function renderClusters() {
         // Format create date
         let ageDisplay = cluster.ageInDays || 'N/A';
         
+        // Format autoscaling display
+        let autoscalingDisplay = cluster.autoscaling ? 
+            '<span class="badge bg-success">Enabled</span>' : 
+            '<span class="badge bg-secondary">Disabled</span>';
+        
         row.innerHTML = `
             <td title="${cluster.projectId}">${cluster.projectName}</td>
             <td>${cluster.clusterName}</td>
@@ -287,6 +306,7 @@ function renderClusters() {
             <td>${cluster.mongoDBVersion}</td>
             <td>${cluster.mongoOwner}</td>
             <td>${ageDisplay}</td>
+            <td>${autoscalingDisplay}</td>
             <td>${pauseScheduleDisplay}</td>
             <td>
                 <button class="btn btn-sm btn-primary configure-pause-btn"
@@ -393,6 +413,7 @@ function exportAsCSV() {
         'MongoDB Owner',
         'Customer Contact',
         'Age (Days)',
+        'Autoscaling',
         'Has Pause Schedule',
         'Pause Hour',
         'Pause Days',
@@ -410,6 +431,7 @@ function exportAsCSV() {
         c.mongoOwner || '',
         c.customerContact || '',
         c.ageInDays || '',
+        c.autoscaling ? 'Enabled' : 'Disabled',
         c.hasPauseSchedule ? 'Yes' : 'No',
         c.pauseHour !== undefined ? c.pauseHour : '',
         c.pauseDaysOfWeek ? c.pauseDaysOfWeek.join(',') : '',

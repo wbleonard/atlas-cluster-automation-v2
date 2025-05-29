@@ -26,6 +26,14 @@ async function fetchClusterSummary() {
     return await response.json();
 }
 
+async function fetchAppConfig() {
+    const response = await fetch(`${API_BASE_URL}/config`);
+    if (!response.ok) {
+        throw new Error('Failed to fetch application configuration');
+    }
+    return await response.json();
+}
+
 async function updateClusterSchedule(projectId, clusterName, updateData) {
     const response = await fetch(`${API_BASE_URL}/projects/${projectId}/clusters/${clusterName}`, {
         method: 'PUT',
@@ -94,6 +102,14 @@ function populatePauseScheduleModal(cluster, editClusterNameInput, editProjectId
     timezoneInput.value = cluster.timezone || 'America/New_York';
     descriptionInput.value = cluster.description || '';
     
+    // Update autoscaling status
+    const autoscalingStatusEl = document.getElementById('autoscalingStatus');
+    if (autoscalingStatusEl) {
+        autoscalingStatusEl.innerHTML = cluster.autoscaling ? 
+            '<span class="badge bg-success">Enabled</span>' : 
+            '<span class="badge bg-secondary">Disabled</span>';
+    }
+    
     // Reset all checkboxes
     document.querySelectorAll('.pauseDayCheck').forEach(checkbox => {
         checkbox.checked = false;
@@ -126,6 +142,7 @@ window.ClusterAPI = {
     fetchProjects,
     fetchClustersByProject,
     fetchClusterSummary,
+    fetchAppConfig,
     updateClusterSchedule,
     removeClusterSchedule,
     formatPauseSchedule,

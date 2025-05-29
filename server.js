@@ -9,6 +9,11 @@ require('dotenv').config();
 const app = express();
 const port = process.env.PORT || 3000;
 
+// Application configuration
+const appConfig = {
+    organizationName: process.env.ATLAS_ORG_NAME || 'MongoDB Atlas'
+};
+
 // Middleware
 app.use(cors()); // Enable CORS for all routes
 app.use(express.json()); // To parse JSON request bodies
@@ -360,7 +365,8 @@ app.get('/api/clusters/summary', async (req, res) => {
                         pauseDaysOfWeek: cluster.pauseDaysOfWeek,
                         timezone: cluster.timezone,
                         ageInDays: cluster.ageInDays,
-                        createDate: cluster.createDate
+                        createDate: cluster.createDate,
+                        autoscaling: cluster.autoscaling || false
                     });
                 });
             }
@@ -443,6 +449,16 @@ app.get('/api/clusters/status-summary', async (req, res) => {
   } catch (error) {
     console.error('Error fetching cluster status summary:', error);
     res.status(500).json({ error: 'Failed to fetch cluster status summary' });
+  }
+});
+
+// API Endpoint to get application configuration including organization name
+app.get('/api/config', async (req, res) => {
+  try {
+    res.json(appConfig);
+  } catch (error) {
+    console.error('Error fetching application configuration:', error);
+    res.status(500).json({ error: 'Failed to fetch application configuration' });
   }
 });
 

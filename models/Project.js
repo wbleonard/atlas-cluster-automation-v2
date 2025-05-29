@@ -16,7 +16,8 @@ const ClusterSchema = new Schema({
     createDate: { type: String }, // Or Date type if preferred
     instanceSize: { type: String },
     mongoDBVersion: { type: String },
-    paused: { type: Boolean }
+    paused: { type: Boolean },
+    autoscaling: { type: Boolean, default: false } // Indicates if Atlas autoscaling is enabled for the cluster
 }, { _id: false }); // No separate _id for subdocuments unless explicitly needed
 
 // Schema for the main project document

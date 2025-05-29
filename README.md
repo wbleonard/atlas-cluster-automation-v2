@@ -59,7 +59,8 @@ Stores project and cluster information with scheduling metadata
       pauseDaysOfWeek: [Number],  // 0-6 for Sunday-Saturday
       pauseHour: Number,          // 0-23 hour of the day
       timezone: String,
-      status: String
+      status: String,
+      autoscaling: Boolean        // Whether Atlas autoscaling is enabled
     }
   ],
   updatedAt: Date
@@ -85,6 +86,7 @@ Tracks all operations performed on clusters
 - **Multi-Project Dashboard**: View and manage clusters across multiple Atlas projects
 - **Filtering & Search**: Filter clusters by project, status, instance size, and more
 - **Pause Scheduling**: Configure automatic pause schedules based on day of week and time
+- **Autoscaling Information**: View which clusters have autoscaling enabled
 - **Timezone Support**: Configure schedules in various timezones
 - **Export Options**: Export cluster data as CSV or JSON
 - **Responsive Design**: Works on desktop and mobile devices
@@ -224,6 +226,7 @@ Create a `.env` file with the following:
 ```
 MONGODB_URI=mongodb+srv://username:password@your-cluster.mongodb.net/?retryWrites=true&w=majority
 PORT=3000
+ATLAS_ORG_NAME=Your Organization Name  # Displayed in the application subtitle
 ```
 
 4. Start the application
