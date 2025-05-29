@@ -22,7 +22,8 @@ exports = function(atlasClusters, existingClusters = []) {
       mongoDBVersion: mongoVersion,
       paused: cluster.paused,
       createDate: cluster.createDate || null,
-      ageInDays
+      ageInDays,
+      autoscaling: cluster.autoScaling?.compute?.enabled || false
     };
 
     const enriched = existingClusterMap[name] || {};
