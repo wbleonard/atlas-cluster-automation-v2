@@ -398,3 +398,14 @@ h1, h2, h3, h4, h5, h6 {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
+
+.owner-not-assigned {
+    color: #dc3545 !important; /* Bootstrap danger color - red */
+    font-style: italic;
+    font-weight: 500;
+}
+
+.cluster-age-old {
+    color: #dc3545 !important; /* Bootstrap danger color - red */
+    font-weight: 600;
+}

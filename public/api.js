@@ -67,19 +67,6 @@ async function removeClusterSchedule(projectId, clusterName) {
     return await response.json();
 }
 
-// Utility Functions
-function formatPauseSchedule(cluster) {
-    if (cluster.pauseHour !== undefined && cluster.pauseDaysOfWeek && Array.isArray(cluster.pauseDaysOfWeek) && cluster.timezone) {
-        const weekdayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-        const dayNames = cluster.pauseDaysOfWeek.map(day => weekdayNames[day]).join(', ');
-        const hour = cluster.pauseHour.toString().padStart(2, '0');
-        
-        return `${hour}:00 on ${dayNames} (${cluster.timezone})`;
-    } else {
-        return 'No schedule';
-    }
-}
-
 function getClusterStatusClass(isPaused) {
     return isPaused ? 'cluster-paused' : 'cluster-active';
 }
@@ -145,7 +132,6 @@ window.ClusterAPI = {
     fetchAppConfig,
     updateClusterSchedule,
     removeClusterSchedule,
-    formatPauseSchedule,
     getClusterStatusClass,
     getClusterStatusText,
     populatePauseScheduleModal,

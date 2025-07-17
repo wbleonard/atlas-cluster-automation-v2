@@ -359,7 +359,7 @@ app.get('/api/clusters/summary', async (req, res) => {
                         status: cluster.paused ? 'Paused' : 'Active',
                         instanceSize: cluster.instanceSize || 'N/A',
                         mongoDBVersion: cluster.mongoDBVersion || 'N/A',
-                        mongoOwner: cluster.mongoOwner || 'Not assigned',
+                        mongoOwner: cluster.mongoOwner || null,
                         hasPauseSchedule: Boolean(cluster.pauseHour !== undefined && cluster.pauseDaysOfWeek && cluster.timezone),
                         pauseHour: cluster.pauseHour,
                         pauseDaysOfWeek: cluster.pauseDaysOfWeek,

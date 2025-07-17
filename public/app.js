@@ -18,7 +18,6 @@ document.addEventListener('DOMContentLoaded', function() {
         fetchClustersByProject, 
         updateClusterSchedule, 
         removeClusterSchedule,
-        formatPauseSchedule,
         getClusterStatusClass,
         getClusterStatusText,
         populatePauseScheduleModal,
@@ -182,12 +181,27 @@ function addClusterToTable(cluster, projectId) {
         </span>
     `;
     
+    // Format owner display - show in red if not assigned
+    const ownerDisplay = formatOwnerDisplay(cluster);
+    
+    // Format age display - add safety check and highlight old clusters
+    let ageDisplay = 'N/A';
+    let ageClass = '';
+    if (cluster.ageInDays !== null && cluster.ageInDays !== undefined) {
+        ageDisplay = cluster.ageInDays.toString();
+        // Add red styling for clusters over 180 days old
+        if (cluster.ageInDays > 180) {
+            ageClass = 'cluster-age-old';
+        }
+    }
+    
     row.innerHTML = `
         <td>${cluster.name}</td>
         <td><span class="cluster-status ${statusClass}"></span> ${statusText}</td>
         <td>${cluster.instanceSize || 'N/A'}</td>
         <td>${cluster.mongoDBVersion || 'N/A'}</td>
-        <td>${cluster.mongoOwner || 'Not assigned'}</td>
+        <td>${ownerDisplay}</td>
+        <td><span class="${ageClass}">${ageDisplay}</span></td>
         <td>${pauseScheduleDisplay}</td>
         <td>
             <button class="btn btn-sm btn-primary configure-pause-btn"

@@ -11,7 +11,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="styles.css">
-    <script src="api.js"></script>
     <script src="common.js"></script>
 </head>
 <body>
@@ -23,7 +22,6 @@
                 <a class="nav-link active" href="index.html">Clusters Summary</a>
                 <a class="nav-link" href="manage.html">Schedule Manager</a>
                 <a class="nav-link" href="charts.html">Charts</a>
-                <a class="nav-link" href="atlas-charts.html">Atlas Charts</a>
             </nav>
         </header>
 
@@ -201,7 +199,7 @@
 
                         <div class="mb-3">
                             <label for="pauseHour" class="form-label leafygreen-label">Pause Hour (0-23)</label>
-                            <input type="number" class="form-control leafygreen-input" id="pauseHour" min="0" max="23" required>
+                            <input type="number" class="form-control leafygreen-input" id="pauseHour" min="0" max="23">
                             <div class="form-text text-muted">The hour of the day when the cluster will be paused (in the selected timezone)</div>
                         </div>
 

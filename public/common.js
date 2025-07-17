@@ -36,3 +36,59 @@ document.addEventListener('DOMContentLoaded', async function() {
         console.error('Error loading organization name:', error);
     }
 });
+
+// Shared formatting functions
+function formatOwnerDisplay(cluster) {
+    let ownerDisplay = cluster.mongoOwner || '';
+    if (!ownerDisplay || ownerDisplay.trim() === '' || ownerDisplay === 'Not assigned') {
+        ownerDisplay = '<span class="owner-not-assigned">Not assigned</span>';
+    }
+    return ownerDisplay;
+}
+
+// Add to window object for global access
+window.formatOwnerDisplay = formatOwnerDisplay;
+window.formatPauseSchedule = formatPauseSchedule; 
+
+// Also add to ClusterAPI if it exists
+if (window.ClusterAPI) {
+    window.ClusterAPI.formatOwnerDisplay = formatOwnerDisplay;
+}
+
+// Utility Functions
+function formatPauseSchedule(cluster) {
+    // Check if cluster has pause schedule data
+    if (!cluster.pauseDaysOfWeek || !Array.isArray(cluster.pauseDaysOfWeek) || cluster.pauseDaysOfWeek.length === 0) {
+        return 'No Schedule';
+    }
+    
+    // Safe check for pauseHour
+    if (cluster.pauseHour === null || cluster.pauseHour === undefined) {
+        return 'No Schedule';
+    }
+    
+    // Safe check for timezone
+    const timezone = cluster.timezone || 'UTC';
+    
+    // Day names mapping
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    
+    try {
+        // Convert pause days to day names
+        const pauseDayNames = cluster.pauseDaysOfWeek
+            .map(day => dayNames[day] || `Day${day}`)
+            .join(', ');
+        
+        // Format the schedule display
+        return `${pauseDayNames} at ${cluster.pauseHour}:00 (${timezone})`;
+    } catch (error) {
+        console.error('Error formatting pause schedule:', error, 'Cluster:', cluster);
+        return 'Invalid Schedule';
+    }
+}
+
+// Add to window object for global access
+window.ClusterUtils = {
+    formatOwnerDisplay: formatOwnerDisplay,
+    formatPauseSchedule: formatPauseSchedule
+};

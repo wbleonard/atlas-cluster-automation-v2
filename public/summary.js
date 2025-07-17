@@ -280,9 +280,24 @@ function renderClusters() {
         // Status indicator
         const statusClass = getClusterStatusClass(cluster.status === 'Paused');
         
-        // Pause schedule information
-        let pauseScheduleDisplayText = formatPauseSchedule(cluster);
-        let pauseScheduleClass = cluster.hasPauseSchedule ? 'has-schedule' : 'no-schedule';
+        // Pause schedule information - add safety check
+        let pauseScheduleDisplayText = 'No Schedule';
+        let pauseScheduleClass = 'no-schedule'; // Default to no-schedule
+        
+        try {
+            pauseScheduleDisplayText = window.formatPauseSchedule ? window.formatPauseSchedule(cluster) : 'No Schedule';
+            
+            // Set class based on the actual schedule text, not the hasPauseSchedule flag
+            if (pauseScheduleDisplayText === 'No Schedule' || pauseScheduleDisplayText === 'Error' || pauseScheduleDisplayText === 'Invalid Schedule') {
+                pauseScheduleClass = 'no-schedule'; // Red styling
+            } else {
+                pauseScheduleClass = 'has-schedule'; // Green styling
+            }
+        } catch (error) {
+            console.error('Error formatting pause schedule for cluster:', cluster.clusterName, error);
+            pauseScheduleDisplayText = 'Error';
+            pauseScheduleClass = 'no-schedule'; // Error should also be red
+        }
         
         let pauseScheduleDisplay = `
             <span class="pause-schedule-badge ${pauseScheduleClass}">
@@ -290,28 +305,39 @@ function renderClusters() {
             </span>
         `;
         
-        // Format create date
-        let ageDisplay = cluster.ageInDays || 'N/A';
+        // Format create date - add safety check and highlight old clusters
+        let ageDisplay = 'N/A';
+        let ageClass = '';
+        if (cluster.ageInDays !== null && cluster.ageInDays !== undefined) {
+            ageDisplay = cluster.ageInDays.toString();
+            // Add red styling for clusters over 180 days old
+            if (cluster.ageInDays > 180) {
+                ageClass = 'cluster-age-old';
+            }
+        }
         
         // Format autoscaling display
         let autoscalingDisplay = cluster.autoscaling ? 
             '<span class="badge bg-success">Enabled</span>' : 
             '<span class="badge bg-secondary">Disabled</span>';
         
+        // Format owner display - show in red if not assigned
+        const ownerDisplay = formatOwnerDisplay(cluster);
+        
         row.innerHTML = `
-            <td title="${cluster.projectId}">${cluster.projectName}</td>
-            <td>${cluster.clusterName}</td>
-            <td><span class="cluster-status ${statusClass}"></span> ${cluster.status}</td>
-            <td>${cluster.instanceSize}</td>
-            <td>${cluster.mongoDBVersion}</td>
-            <td>${cluster.mongoOwner}</td>
-            <td>${ageDisplay}</td>
+            <td title="${cluster.projectId || ''}">${cluster.projectName || ''}</td>
+            <td>${cluster.clusterName || ''}</td>
+            <td><span class="cluster-status ${statusClass}"></span> ${cluster.status || 'Unknown'}</td>
+            <td>${cluster.instanceSize || 'N/A'}</td>
+            <td>${cluster.mongoDBVersion || 'N/A'}</td>
+            <td>${ownerDisplay}</td>
+            <td><span class="${ageClass}">${ageDisplay}</span></td>
             <td>${autoscalingDisplay}</td>
             <td>${pauseScheduleDisplay}</td>
             <td>
                 <button class="btn btn-sm btn-primary configure-pause-btn"
-                    data-cluster-name="${cluster.clusterName}"
-                    data-project-id="${cluster.projectId}">
+                    data-cluster-name="${cluster.clusterName || ''}"
+                    data-project-id="${cluster.projectId || ''}">
                     Configure
                 </button>
             </td>
@@ -369,34 +395,56 @@ async function savePauseSchedule() {
     const clusterName = editClusterNameInput.value;
     const projectId = editProjectIdInput.value;
     
-    // Get selected days of week using the shared function
-    const pauseDaysOfWeek = getSelectedPauseDays();
+    // Get selected days of week
+    const pauseDaysOfWeek = [];
+    document.querySelectorAll('.pauseDayCheck:checked').forEach(checkbox => {
+        pauseDaysOfWeek.push(parseInt(checkbox.value));
+    });
     
-    // Create update data
+    // Get pause hour value
+    const pauseHourValue = pauseHourInput.value;
+    
+    // Create update data - only include fields that have values
     const updateData = {
         mongoOwner: mongoOwnerInput.value,
         customerContact: customerContactInput.value,
-        pauseHour: parseInt(pauseHourInput.value),
-        pauseDaysOfWeek: pauseDaysOfWeek,
         timezone: timezoneInput.value,
-        description: descriptionInput.value
+        description: descriptionInput.value,
+        pauseDaysOfWeek: pauseDaysOfWeek
     };
     
+    // Only include pauseHour if pause days are selected AND hour is provided
+    if (pauseDaysOfWeek.length > 0) {
+        if (pauseHourValue && pauseHourValue !== '') {
+            const hourInt = parseInt(pauseHourValue);
+            if (!isNaN(hourInt) && hourInt >= 0 && hourInt <= 23) {
+                updateData.pauseHour = hourInt;
+            } else {
+                showNotification('Error', 'Please enter a valid pause hour between 0 and 23 when pause days are selected.', true);
+                return;
+            }
+        } else {
+            showNotification('Error', 'Please enter a pause hour when pause days are selected.', true);
+            return;
+        }
+    }
+    // If no pause days selected, don't include pauseHour in the request at all
+
+    console.log('Sending update data:', updateData); // Debug log
+
     try {
-        await updateClusterSchedule(projectId, clusterName, updateData);
+        const response = await updateClusterSchedule(projectId, clusterName, updateData);
         
-        // Hide modal
+        console.log('Response received:', response); // Debug log
+        
+        // If we get here, the update was successful (no exception thrown)
         pauseScheduleModal.hide();
-        
-        // Show success notification
-        showNotification('Success', `Pause schedule for ${clusterName} updated successfully`);
-        
-        // Refresh cluster list with preserved filters
+        showNotification('Success', 'Cluster metadata updated successfully');
         await loadAllClusters(true);
         
     } catch (error) {
         console.error('Error updating cluster:', error);
-        showNotification('Error', `Failed to update cluster: ${error.message}`, true);
+        showNotification('Error', 'Failed to update cluster: ' + error.message, true);
     }
 }
 
