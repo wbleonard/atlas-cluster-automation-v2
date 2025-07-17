@@ -289,6 +289,10 @@ npm start
 
 7. Confirm the Value of your ServiceName by checking the Linked Data Sources. 
 
+8. Add the `moment-timezone` dependency, which is used by the scheduling function:
+
+   ![](images/add-dependency.png)
+
 
 ### Setting Up Atlas Charts
 1. In your Atlas project, navigate to the Charts tab
