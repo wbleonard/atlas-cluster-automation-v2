@@ -4,7 +4,7 @@ A **serverless automation solution** for managing MongoDB Atlas cluster pause sc
 
 ## Overview
 
-This solution provides automated pause scheduling for MongoDB Atlas clusters across multiple projects using Atlas cluster tags. It helps optimize resource usage and reduce costs by automating the pausing of clusters when they're not needed. **Version 2 uses Atlas cluster tags for schedule configuration, eliminating the need for separate databases, web UIs, or complex infrastructure - everything is managed through Atlas App Services and visible in the Atlas console.**
+This solution provides automated pause scheduling for MongoDB Atlas clusters across multiple projects using Atlas cluster tags. It helps optimize resource usage and reduce costs by automating the pausing of clusters when they're not needed. 
 
 ## Architecture
 
