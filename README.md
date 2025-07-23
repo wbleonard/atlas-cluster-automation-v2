@@ -1,110 +1,154 @@
 # MongoDB Atlas Cluster Automation V2
 
-A web-based dashboard for managing MongoDB Atlas clusters that allows users to view, filter, and configure automated pause schedules across multiple projects to optimize resource usage and reduce costs.
-
-![](images/clusters-summary.png)
+A **serverless automation solution** for managing MongoDB Atlas cluster pause schedules using **Atlas cluster tags** to optimize resource usage and reduce costs. No web UI required - manage schedules directly in the Atlas console!
 
 ## Overview
 
-This application provides a user-friendly interface for managing pause schedules of MongoDB Atlas clusters across multiple projects. It helps optimize resource usage and reduce costs by automating the pausing of clusters when they're not needed.
+This solution provides automated pause scheduling for MongoDB Atlas clusters across multiple projects using Atlas cluster tags. It helps optimize resource usage and reduce costs by automating the pausing of clusters when they're not needed. **Version 2 uses Atlas cluster tags for schedule configuration, eliminating the need for separate databases, web UIs, or complex infrastructure - everything is managed through Atlas App Services and visible in the Atlas console.**
 
 ## Architecture
 
-The application consists of three main components:
+This is a **serverless, infrastructure-free solution** built entirely on Atlas App Services:
 
-1. **Web UI**: A responsive frontend built with HTML, CSS (Bootstrap), and vanilla JavaScript
-2. **REST API**: A Node.js/Express backend that manages data in MongoDB
-3. **Atlas App Services**: Serverless functions and triggers that execute the actual cluster pausing logic
+1. **Atlas App Services**: Serverless functions and triggers that execute cluster automation using **Atlas cluster tags**
+2. **Atlas Cluster Tags**: Primary storage for schedule configuration (no external databases required)
+3. **Atlas UI**: Native interface for viewing and managing cluster schedules
+4. **Optional Activity Logging**: MongoDB collection for audit trail (can be in any Atlas cluster)
 
-### Component Details
+### Key Innovation: Tag-Based Scheduling
 
-#### Web UI
-- Built with Bootstrap 5 for responsive design
-- Interactive dashboard with filtering and sorting capabilities
-- Project and cluster management interfaces
-- Pause schedule configuration modal
+**V2 uses Atlas cluster tags as the single source of truth** for schedule configuration:
+- Schedule information is stored as `automation:pause-schedule` tags directly on Atlas clusters
+- Tags are visible and editable in the Atlas UI for complete transparency
+- No web UI, REST API, or external database required for core functionality
+- Simplified architecture with minimal infrastructure
+- Format: `days:1.2.3.4.5:hour:22:timezone:America-New_York` (descriptive and human-readable)
 
-#### REST API (Express.js)
-- CRUD operations for projects and clusters
-- Business logic for pause schedule management
-- Validation and error handling
+### Benefits of Serverless Approach
 
-#### Atlas App Services
-- Serverless functions for interacting with Atlas Admin API
-- Database triggers for audit logging
-- Scheduled triggers for automatic cluster pausing based on configured schedules
+- ✅ **Zero Infrastructure**: No servers, databases, or web applications to maintain
+- ✅ **Atlas-Native**: Fully integrated with Atlas ecosystem and UI
+- ✅ **Secure by Default**: No custom authentication or web security concerns
+- ✅ **Scalable**: Handles unlimited Atlas projects and clusters
+- ✅ **Cost-Effective**: Only pay for App Services execution time
+- ✅ **Transparent**: All configuration visible in Atlas console
 
 ## Data Model
 
-The application uses MongoDB with the following collections:
+This solution uses a **serverless, tag-first approach**:
 
-### cluster_automation
-Stores project and cluster information with scheduling metadata
-```javascript
-{
-  _id: ObjectId,
-  projectId: String,
-  projectName: String,
-  clusters: [
-    {
-      name: String,
-      description: String,
-      instanceSize: String,
-      mongoDBVersion: String,
-      paused: Boolean,
-      mongoOwner: String,
-      customerContact: String,
-      createDate: String,
-      ageInDays: Number,
-      pauseDaysOfWeek: [Number],  // 0-6 for Sunday-Saturday
-      pauseHour: Number,          // 0-23 hour of the day
-      timezone: String,
-      status: String,
-      autoscaling: Boolean        // Whether Atlas autoscaling is enabled
-    }
-  ],
-  updatedAt: Date
-}
+### Atlas Cluster Tags (Primary and Only Required Storage)
+Schedule configuration is stored directly on Atlas clusters using tags:
+```
+Key: automation:pause-schedule
+Value: days:1.2.3.4.5:hour:22:timezone:America-New_York
 ```
 
-### activity_logs
-Tracks all operations performed on clusters
+**Tag Format Components:**
+- `days:1.2.3.4.5` - Days of week (0=Sunday, 6=Saturday), dot-separated
+- `hour:22` - Hour to pause (0-23, 24-hour format)
+- `timezone:America-New_York` - IANA timezone (/ converted to - for Atlas compatibility)
+
+**Benefits:**
+- ✅ Visible in Atlas UI for transparency
+- ✅ No external database dependency
+- ✅ Self-documenting with descriptive format
+- ✅ Direct integration with Atlas infrastructure
+- ✅ Version controlled with cluster configuration
+
+### Optional Activity Logging
+If audit trails are needed, activity logs can be stored in any MongoDB collection:
 ```javascript
 {
   _id: ObjectId,
   projectId: String,
   clusterName: String,
   action: String,      // "pause", "resume", "configure"
-  performedBy: String, // User or "system" for automated actions
+  performedBy: String, // "SYSTEM_AUTOMATION_TRIGGER"
   timestamp: Date,
   details: Object      // Additional context about the action
 }
 ```
 
+## How Tag-Based Scheduling Works
+
+### 1. Schedule Configuration (Multiple Options)
+
+**Option A: Using Atlas App Services Console**
+```javascript
+// Test function call in App Services console
+await setClusterScheduleTag("Hello world!", "", 22, [1,2,3,4,5], "America/New_York");
+```
+
+**Option B: Using Atlas CLI**
+```bash
+# Add schedule tag to cluster
+atlas clusters tags add <clusterName> --projectId <projectId> \
+  --tag key=automation:pause-schedule,value=days:1.2.3.4.5:hour:22:timezone:America-New_York
+```
+
+**Option C: Direct in Atlas UI**
+- Navigate to your cluster → Configuration → Tags
+- Add tag: `automation:pause-schedule` = `days:1.2.3.4.5:hour:22:timezone:America-New_York`
+
+### 2. Tag Creation
+Any of the above methods creates an Atlas cluster tag:
+```
+Key: automation:pause-schedule
+Value: days:1.2.3.4.5:hour:22:timezone:America-New_York
+```
+
+### 3. Automated Processing
+- Hourly trigger scans all Atlas projects for clusters with `automation:pause-schedule` tags
+- Parses tag values to determine when clusters should be paused
+- Converts schedule to local timezone and checks if current time matches
+- Pauses/resumes clusters as needed and logs actions
+
+### 4. Management & Visibility
+- **Atlas UI**: Tags visible under cluster Configuration → Tags
+- **Atlas CLI**: Use `atlas clusters tags list` to view schedules
+- **App Services Logs**: View automation activity in App Services console
+- **Activity Logs**: Optional MongoDB collection for detailed audit trail
+
 ## Key Features
 
-- **Multi-Project Dashboard**: View and manage clusters across multiple Atlas projects
-- **Filtering & Search**: Filter clusters by project, status, instance size, and more
-- **Pause Scheduling**: Configure automatic pause schedules based on day of week and time
-- **Autoscaling Information**: View which clusters have autoscaling enabled
-- **Timezone Support**: Configure schedules in various timezones
-- **Export Options**: Export cluster data as CSV or JSON
-- **Responsive Design**: Works on desktop and mobile devices
-- **Data Visualization**: Interactive charts showing cluster distribution and cost savings
-- **MongoDB Leafygreen UI**: Modern UI design following MongoDB's design principles
-- **Cost Analytics**: Estimated cost savings from automated cluster pausing
-- **GitHub Integration**: Source code available in a public GitHub repository
-
-![Cluster Status Distribution](images/clusters-pie-chart.svg)
+- **🏷️ Tag-Based Automation**: Schedule configuration stored directly on Atlas clusters as tags
+- **🎛️ Atlas-Native Management**: Schedules visible and manageable in Atlas console, CLI, and API
+- **🌐 Multi-Project Support**: Automatically discovers and manages clusters across all Atlas projects
+- **⏰ Timezone Support**: Configure schedules in any IANA timezone with proper handling
+- **📖 Self-Documenting**: Human-readable schedule tags (e.g., `days:1.2.3.4.5:hour:22:timezone:America-New_York`)
+- **🏗️ Zero Infrastructure**: No servers, databases, or web applications to maintain
+- **🔒 Secure by Default**: No custom authentication or web security concerns
+- **💰 Cost-Effective**: Only pay for App Services execution time (typically pennies per month)
+- **📊 Optional Logging**: Detailed audit trail for compliance and troubleshooting
+- **🧪 Easy Testing**: "Hello world!" shortcuts for quick function testing
+- **📈 Scalable**: Handles unlimited Atlas projects and clusters
+- **🔄 API Integration**: Programmatic access via Atlas Admin API
 
 ## Atlas App Services Functions & Triggers
 
-The application leverages MongoDB Atlas App Services for automation:
+The application leverages MongoDB Atlas App Services for **tag-based automation**:
 
-1. **Scheduled Trigger - Cluster Pause Check**
-   - Runs every hour
-   - Checks for clusters due to be paused based on schedule
-   - Calls Atlas Admin API to pause matching clusters
+### Core Tag-Based Functions
+
+**Schedule Management:**
+- `utility/setClusterScheduleTag`: Creates/updates `automation:pause-schedule` tags on clusters
+- `utility/getClusterScheduleFromTags`: Retrieves schedule configuration from cluster tags
+- `utility/parseScheduleTag`: Parses tag values into usable schedule objects
+- `utility/removeClusterScheduleTag`: Removes schedule tags from clusters
+- `utility/updateClusterTags`: Updates cluster tags via Atlas API
+- `utility/testScheduleTags`: Comprehensive testing utility for tag operations
+
+**Project Discovery:**
+- `utility/getProjectsWithScheduledClusters`: Scans all Atlas projects for clusters with schedule tags
+
+### Automation Triggers
+
+1. **Scheduled Trigger - Tag-Based Pause Processing**
+   - Runs every hour via `enforcePauseScheduleTrigger`
+   - Calls `trigger/processScheduledClusterOperations` (tag-based version)
+   - Scans all projects for clusters with `automation:pause-schedule` tags
+   - Processes schedules in local timezones and pauses/resumes clusters
    - Logs actions to activity_logs collection
 
 2. **Database Trigger - Audit Logging**
@@ -112,66 +156,58 @@ The application leverages MongoDB Atlas App Services for automation:
    - Records all changes to configurations in activity_logs
 
 3. **Function - Atlas API Integration**
-   - Interacts with Atlas Admin API to pause/resume clusters
-   - Handles authentication and error handling
+   - `modifyCluster`: Interacts with Atlas Admin API to pause/resume clusters
+   - `setClusterPauseState`: Handles cluster state changes
+   - Includes authentication and error handling
 
-4. **Scheduled Trigger - Cluster Inventory Sync**
-   - Runs daily to keep the cluster inventory in sync with Atlas
-   - Adds new clusters, updates existing ones, and marks deleted clusters
-   - Enriches cluster data with additional metadata
+4. **Optional Triggers**
+   - `trigger/syncProjectClusters`: Syncs cluster inventory (if using database caching)
+   - `trigger/pauseClusters`: Bulk pause operations
+   - `trigger/resumeClusters`: Bulk resume operations
 
 ## Enhanced Features & Implementation
 
-This project is an upgraded version of the solution described in [MongoDB's developer tutorial](https://www.mongodb.com/developer/products/atlas/atlas-cluster-automation-using-scheduled-triggers/), with the following enhancements:
+This project represents a **serverless, infrastructure-free approach** to cluster automation:
 
-### Data-Driven Automation
-- Cluster pause/resume schedules are stored in MongoDB collections rather than hardcoded in trigger functions
-- Each cluster can have its own custom schedule with preferred pause and optional resume times
-- Supports complex scheduling with timezone awareness
+### Tag-Based Architecture (V2 Innovation)
+- **Atlas-Native Scheduling**: Schedule configuration stored as cluster tags, eliminating external dependencies
+- **Transparency**: Schedules visible in Atlas UI, CLI, and API for easy management and troubleshooting
+- **Zero Infrastructure**: No servers, databases, or web applications to deploy or maintain
+- **Self-Documenting**: Human-readable tag format (`days:1.2.3.4.5:hour:22:timezone:America-New_York`)
+- **Atlas Integration**: Leverages Atlas infrastructure for configuration management
+- **Security**: No custom authentication or web security concerns
 
-### Comprehensive Logging
-- All cluster state changes (pause, resume, create, delete, scale) are logged
+### Serverless Automation
+- Each cluster can have its own custom schedule with timezone awareness
+- Supports complex scheduling patterns with day-of-week and hour precision
+- Dynamic discovery of scheduled clusters across all Atlas projects
+- No hardcoded schedules in trigger functions
+- Scales automatically with your Atlas infrastructure
+
+### Optional Comprehensive Logging
+- All cluster state changes (pause, resume) can be logged to MongoDB
 - Detailed audit trail for compliance and troubleshooting
 - Activity logs can be analyzed for usage patterns and optimization opportunities
-
-### Automated Inventory Management
-- Automatic synchronization between Atlas clusters and the application's database
-- Detects new clusters, updates existing ones, and identifies deleted clusters
-- No manual inventory management required
-
-### Enhanced Metadata
-- Extends Atlas cluster information with custom fields:
-  - Owner contact information
-  - Department/team allocation
-  - Cluster age and creation date
-  - Custom descriptions and notes
-  - Usage status (production, development, testing)
-
-### Visualization and Analytics
-- Built-in charts and visualizations:
-  - Status distribution (active vs. paused clusters)
-  - Schedule configuration analysis
-  - Instance size distribution
-  - Project distribution
-  - Cost savings estimation
-- MongoDB Leafygreen design principles for consistent UI
-- Responsive design for both desktop and mobile
-- Real-time data refresh capabilities
-
-### Atlas Charts Integration
-- Visualize cluster inventory with custom dashboards
-- Track resource utilization and cost savings
-- Monitor pause/resume patterns and optimize scheduling
+- Completely separate from schedule storage for clean architecture
 
 ### Implementation Guide
 
 #### Key App Services Components
 
+**Tag-Based Utility Functions:**
+- `utility/setClusterScheduleTag`: Creates/updates schedule tags with format validation
+- `utility/getClusterScheduleFromTags`: Retrieves and parses schedule configuration from tags  
+- `utility/parseScheduleTag`: Parses descriptive tag format into schedule objects
+- `utility/removeClusterScheduleTag`: Removes schedule tags from clusters
+- `utility/updateClusterTags`: Updates cluster tags via Atlas API
+- `utility/getProjectsWithScheduledClusters`: Discovers all clusters with schedule tags
+- `utility/testScheduleTags`: Testing utility with "Hello world!" shortcuts
+
 **Functions:**
 
 *Trigger Functions:*
-- `trigger/processScheduledClusterOperations`: Processes clusters according to their configured pause schedules (runs hourly)
-- `trigger/syncProjectClusters`: Syncs cluster inventory with Atlas (runs every 15 minutes)
+- `trigger/processScheduledClusterOperations`: **Tag-based** cluster processing (runs hourly)
+- `trigger/syncProjectClusters`: Syncs cluster inventory with Atlas (optional, for caching)
 - `trigger/logClusterAutomationChange`: Records changes to cluster configurations in activity logs
 - `trigger/pauseClusters`: Pauses all clusters in specified projects (optional)
 - `trigger/resumeClusters`: Resumes all clusters in specified projects (optional)
@@ -181,7 +217,7 @@ This project is an upgraded version of the solution described in [MongoDB's deve
 - `setClusterPauseState`: Pauses or resumes a specific cluster
 - `modifyCluster`: Modifies cluster attributes through Atlas API
 
-*Utility Functions:*
+*Legacy Utility Functions (still used for metadata):*
 - `utility/getClusterOpsCollection`: Gets a handle to the cluster_automation collection
 - `utility/getActivityLogsCollection`: Gets a handle to the activity_logs collection
 - `utility/getProjectCluster`: Retrieves a specific cluster from a project
@@ -194,134 +230,218 @@ This project is an upgraded version of the solution described in [MongoDB's deve
 - `ui/updateClusterMetadata`: Updates cluster metadata from the UI
 
 **Triggers:**
-- `enforcePauseScheduleTrigger`: Scheduled trigger that runs hourly (every hour) to process clusters according to their pause schedules by calling the `trigger/processScheduledClusterOperations` function
-- `syncProjectClustersTrigger`: Scheduled trigger that runs every 15 minutes to sync cluster inventory by calling the `trigger/syncProjectClusters` function
-- `logClusterAutomationChangeTrigger`: Database trigger that fires when cluster configurations change by calling the `trigger/logClusterAutomationChange` function
-- `pauseClustersTrigger`: Optional scheduled trigger (8:00 AM) that can be enabled to pause all clusters
-- `resumeClusters`: Optional scheduled trigger (12:00 PM Mon-Fri) that can be enabled to resume all clusters
-- `scaleClusterUp`: Optional trigger for scaling up clusters
+- `enforcePauseScheduleTrigger`: Scheduled trigger that runs hourly to process **tag-based** cluster schedules by calling `trigger/processScheduledClusterOperations`
+- `logClusterAutomationChangeTrigger`: Optional database trigger for activity logging (if using audit collection)
 
-## Getting Started
+## Quick Start Guide
 
 ### Prerequisites
-- Node.js 16+
-- MongoDB Atlas account
-- Atlas cluster for storing application data.
+- MongoDB Atlas account with clusters to automate
+- Atlas Admin API key (public/private key pair)
 
-### Installation
+### Setup (5-Minute Installation)
 
-1. Clone the repository
+1. **Create Atlas App Services Application**
+   ```bash
+   # In your Atlas project, go to "App Services" and create a new application
+   ```
+
+2. **Configure API Credentials**
+   - In App Services, go to Values & Secrets
+   - Create secret `AtlasPrivateKeySecret` with your Atlas private API key
+   - Create value `AtlasPublicKey` with your Atlas public API key
+
+3. **Deploy the Functions**
+   ```bash
+   # Clone repository
+   git clone https://github.com/wbleonard/atlas-cluster-automation-v2.git
+   cd atlas-cluster-automation-v2
+   
+   # Install App Services CLI
+   npm install -g atlas-app-services-cli
+   
+   # Login to Atlas
+   appservices login --api-key="<Public Key>" --private-api-key="<Private Key>"
+   
+   # Deploy from app-services directory
+   cd app-services/AutomationApp
+   appservices push --remote="<Your App ID>"
+   ```
+
+4. **Add Dependencies**
+   - In App Services console, go to Functions → Dependencies
+   - Add: `moment-timezone`
+
+5. **Test the Setup**
+   ```javascript
+   // In App Services console, run this test:
+   await testScheduleTags("Hello world!", "", "set");
+   ```
+
+### Schedule Your First Cluster
+
+**Option 1: Using App Services Console**
+```javascript
+// Set weekday 10 PM Eastern schedule
+await setClusterScheduleTag("Hello world!", "", 22, [1,2,3,4,5], "America/New_York");
+```
+
+**Option 2: Using Atlas UI**
+1. Go to your cluster → Configuration → Tags  
+2. Add tag: `automation:pause-schedule` = `days:1.2.3.4.5:hour:22:timezone:America-New_York`
+
+**Option 3: Using Atlas CLI**
 ```bash
-git clone https://github.com/wbleonard/atlas-cluster-automation-v2.git
-cd atlas-cluster-automation-v2
+atlas clusters tags add <clusterName> --projectId <projectId> \
+  --tag key=automation:pause-schedule,value=days:1.2.3.4.5:hour:22:timezone:America-New_York
 ```
 
-2. Install dependencies
+## Tag Format Reference
+
+### Schedule Tag Format
+```
+Key: automation:pause-schedule
+Value: days:1.2.3.4.5:hour:22:timezone:America-New_York
+```
+
+**Components:**
+- `days:` - Prefix for days of week section
+- `1.2.3.4.5` - Days of week (0=Sunday through 6=Saturday), dot-separated
+- `hour:` - Prefix for hour section  
+- `22` - Hour to pause (0-23, 24-hour format)
+- `timezone:` - Prefix for timezone section
+- `America-New_York` - IANA timezone with `/` converted to `-` for Atlas compatibility
+
+**Examples:**
+- `days:1.2.3.4.5:hour:22:timezone:America-New_York` - Weekdays at 10 PM Eastern
+- `days:0.6:hour:9:timezone:America-New_York` - Weekends at 9 AM Eastern  
+- `days:1.3.5:hour:18:timezone:Europe-London` - Mon/Wed/Fri at 6 PM London time
+- `days:1.2.3.4.5:hour:22` - Weekdays at 10 PM (defaults to America/New_York)
+
+## Management & Monitoring
+
+### View Schedules
 ```bash
-npm install
+# List all clusters with schedule tags
+atlas clusters tags list --projectId <projectId>
+
+# View specific cluster tags
+atlas clusters describe <clusterName> --projectId <projectId>
 ```
 
-3. Configure environment variables
-Create a `.env` file with the following:
-```
-MONGODB_URI=mongodb+srv://username:password@your-cluster.mongodb.net/?retryWrites=true&w=majority
-PORT=3000
-ATLAS_ORG_NAME=Your Organization Name  # Displayed in the application subtitle
+### Monitor Automation
+- **App Services Logs**: View function execution logs in Atlas App Services console
+- **Atlas Activity Feed**: See cluster pause/resume events in Atlas project activity
+- **Optional Activity Collection**: Query MongoDB collection for detailed audit trails
+
+### Troubleshooting
+```javascript
+// Test tag parsing
+await parseScheduleTag("days:1.2.3.4.5:hour:22:timezone:America-New_York");
+
+// List all projects with scheduled clusters  
+await getProjectsWithScheduledClusters();
+
+// Test all tag operations
+await testScheduleTags("Hello world!", "", "parse");
 ```
 
-4. Start the application
-```bash
-npm start
+## Advanced Configuration
+
+### Custom Timezones
+```javascript
+// Asia/Tokyo schedule
+await setClusterScheduleTag(projectId, clusterName, 18, [1,2,3,4,5], "Asia/Tokyo");
+
+// Europe/London schedule  
+await setClusterScheduleTag(projectId, clusterName, 20, [0,6], "Europe/London");
+```
+
+### Weekend vs Weekday Schedules
+```javascript
+// Weekend morning shutdown
+await setClusterScheduleTag(projectId, "dev-cluster", 9, [0,6], "America/New_York");
+
+// Weekday evening shutdown
+await setClusterScheduleTag(projectId, "prod-cluster", 22, [1,2,3,4,5], "America/New_York");
+```
+
+### Activity Logging Setup (Optional)
+```javascript
+// Configure activity logging collection
+await getActivityLogsCollection(); // Sets up collection if needed
+```
+
+## Cost Optimization Examples
+
+### Development Clusters
+```
+Tag: days:1.2.3.4.5:hour:18:timezone:America-New_York
+Saves: ~70% on compute costs (paused 14 hours/day + weekends)
+```
+
+### Testing Clusters  
+```
+Tag: days:0.6:hour:22:timezone:America-New_York
+Saves: ~50% on compute costs (paused nights + weekdays)
+```
+
+### Analytics Clusters
+```
+Tag: days:1.2.3.4.5:hour:23:timezone:America-New_York  
+Saves: ~65% on compute costs (paused overnight + weekends)
 ```
 
 ## Deployment
 
-### Backend API
-1. Deploy to your preferred hosting platform (Heroku, AWS, etc.)
-2. Set environment variables for MongoDB connection
+### Atlas App Services (Only Required Component)
+1. Create App Services application in your Atlas project
+2. Configure API credentials as Values/Secrets
+3. Deploy functions using App Services CLI
+4. Add `moment-timezone` dependency
+5. Enable hourly trigger
 
-### Atlas App Services
-1. Navigate to your Atlas project and create a new App Services application. You can get there from the "Triggers" menu and then selecting "View All Apps". 
-2. The extract has a dependency on the API Secret Key, thus the import will fail if it is not configured beforehand.
+**That's it!** No servers, databases, or additional infrastructure needed.
 
-   Use the Values menu on the left to Create a Secret named `AtlasPrivateKeySecret` containing your private key (the secret is not in quotes):
+## Why Choose the Serverless Approach?
 
-   ![](images/create_secret.webp)
+### Traditional Web-Based Solutions
+❌ Require servers, databases, and web infrastructure  
+❌ Need security hardening, authentication, and authorization  
+❌ Maintenance overhead for UI, API, and database components  
+❌ Additional costs for hosting and infrastructure  
+❌ Complex deployment and scaling requirements  
 
-3. Install the The App Services CLI
-
-   ```bash
-   ✗  npm install -g atlas-app-services-cli
-   ```
-
-4. Log into Atlas App Services
-
-   ```bash
-   ✗ appservices login --api-key="<Public API Key>" --private-api-key="<Private API Key>"
-
-   Successfully logged in
-   ```
- 
-5. Copy the App Services Application ID
-   
-   ![](images/copy-app-id.png)
-
-6. From the `app-service/AutomationApp` sub-directory, run
-
-   ```bash
-   appservices push --remote="<Your App ID>"
-
-   ...
-   A summary of changes
-   ...
-   ? Please confirm the changes shown above Yes
-   Creating draft
-   Pushing changes
-   Deploying draft
-   Deployment complete
-   Successfully pushed app up: <Your App ID>
-
-   ```
-
-6. After the import, replace the AtlasPublicKey with your API public key value.
-
-   ![](images/atlas_public_key.webp)
-
-7. Confirm the Value of your ServiceName by checking the Linked Data Sources. 
-
-8. Add the `moment-timezone` dependency, which is used by the scheduling function:
-
-   ![](images/add-dependency.png)
-
-
-### Setting Up Atlas Charts
-1. In your Atlas project, navigate to the Charts tab
-2. Create a new dashboard
-3. Add charts for:
-   - Cluster inventory by status (active/paused)
-   - Cluster inventory by instance size
-   - Cluster activity over time
-   - Cost savings from automated pausing
-4. Share the dashboard with your team
-
-For detailed instructions on setting up Atlas Charts dashboards, refer to the [Atlas Charts Setup Guide](docs/atlas-charts-setup.md).
-
-The application includes two types of chart visualizations:
-
-1. **Built-in Charts** (charts.html): Interactive charts powered by Chart.js that display:
-   - Cluster status distribution (active vs. paused)
-   - Schedule configuration distribution
-   - Instance size distribution
-   - Project distribution
-   - Estimated cost savings
-
-2. **Atlas Charts Integration** (atlas-charts.html): A placeholder page where you can embed more advanced visualizations from MongoDB Atlas Charts for deeper insights.
-4. Share the dashboard with your team
+### Atlas Tag-Based Automation (This Solution)
+✅ **Zero Infrastructure**: No servers or databases to maintain  
+✅ **Atlas-Native**: Fully integrated with Atlas UI and ecosystem  
+✅ **Secure by Default**: No custom authentication or web vulnerabilities  
+✅ **Cost-Effective**: Pay only for function execution (typically <$1/month)  
+✅ **Transparent**: All configuration visible in Atlas console  
+✅ **Scalable**: Automatically handles unlimited projects and clusters  
+✅ **Simple**: 5-minute setup with App Services deployment  
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome! This solution is designed to be:
+- **Simple**: Focused on core automation without unnecessary complexity
+- **Secure**: No web UI or custom authentication to maintain  
+- **Scalable**: Built on Atlas App Services serverless architecture
+- **Transparent**: All configuration visible in Atlas UI
+
+Please feel free to submit a Pull Request for improvements to the automation logic or additional scheduling features.
 
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+---
+
+## Legacy Web UI (Deprecated)
+
+The `public/`, `models/`, and `server.js` files contain a legacy web-based dashboard that is no longer recommended due to:
+- Security and maintenance overhead
+- Redundancy with Atlas UI integration  
+- Infrastructure requirements
+
+The tag-based serverless approach is now the recommended implementation.

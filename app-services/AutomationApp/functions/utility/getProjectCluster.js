@@ -6,8 +6,8 @@
 exports = async function(project_id, clusterName) {
   
   if (project_id == "Hello world!") { // Easy testing from the console
-    project_id = "655b7867797c6e69eb530e2a"
-    clusterName = "DemoCluster"
+    project_id = "6807d3a43dae3141f99d8aa0"
+    clusterName = "TestCluster"
   }
   
   // Get stored credentials...
