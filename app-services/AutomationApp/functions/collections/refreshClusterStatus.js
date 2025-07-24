@@ -74,8 +74,10 @@ exports = async function(projectId = null, debugMode = false) {
                 automationEnabled: automation.enabled,
                 pauseHour: schedule.pauseHour,
                 pauseDaysOfWeek: schedule.pauseDaysOfWeek,
+                pauseDaysOfWeekDisplay: formatDaysOfWeek(schedule.pauseDaysOfWeek),
                 timezone: schedule.timezone,
-                scheduleTag: automation.scheduleValue
+                scheduleTag: automation.scheduleValue,
+                scheduleDisplay: formatScheduleDisplay(schedule)
               };
             } else {
               scheduleData = {
@@ -83,8 +85,10 @@ exports = async function(projectId = null, debugMode = false) {
                 automationEnabled: false,
                 pauseHour: null,
                 pauseDaysOfWeek: [],
+                pauseDaysOfWeekDisplay: null,
                 timezone: '',
-                scheduleTag: null
+                scheduleTag: null,
+                scheduleDisplay: null
               };
             }
           } catch (error) {
@@ -179,3 +183,32 @@ exports = async function(projectId = null, debugMode = false) {
     throw error;
   }
 };
+
+// Helper function to format days of week array into readable string
+function formatDaysOfWeek(daysArray) {
+  if (!daysArray || !Array.isArray(daysArray) || daysArray.length === 0) {
+    return null;
+  }
+  
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const sortedDays = [...daysArray].sort((a, b) => a - b);
+  
+  return sortedDays.map(day => dayNames[day]).join(', ');
+}
+
+// Helper function to format complete schedule display
+function formatScheduleDisplay(parsedSchedule) {
+  if (!parsedSchedule) return null;
+  
+  const { pauseHour, pauseDaysOfWeek, timezone } = parsedSchedule;
+  
+  if (pauseHour === null || !pauseDaysOfWeek || pauseDaysOfWeek.length === 0) {
+    return null;
+  }
+  
+  const daysDisplay = formatDaysOfWeek(pauseDaysOfWeek);
+  const hourDisplay = pauseHour.toString().padStart(2, '0') + ':00';
+  const timezoneDisplay = timezone ? ` ${timezone}` : '';
+  
+  return `${daysDisplay} at ${hourDisplay}${timezoneDisplay}`;
+}

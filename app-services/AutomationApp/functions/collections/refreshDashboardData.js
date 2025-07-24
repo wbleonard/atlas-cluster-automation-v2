@@ -47,6 +47,30 @@ exports = async function() {
           automationEnabledClusters++;
         }
 
+        // Parse schedule for human-readable fields
+        let scheduleData = {};
+        if (cluster.schedule) {
+          try {
+            const parsedSchedule = await context.functions.execute("tags/parseScheduleTag", cluster.schedule);
+            scheduleData = {
+              pauseHour: parsedSchedule.pauseHour,
+              pauseDaysOfWeek: parsedSchedule.pauseDaysOfWeek,
+              pauseDaysOfWeekDisplay: formatDaysOfWeek(parsedSchedule.pauseDaysOfWeek),
+              timezone: parsedSchedule.timezone,
+              scheduleDisplay: formatScheduleDisplay(parsedSchedule)
+            };
+          } catch (error) {
+            console.warn(`Failed to parse schedule for ${cluster.name}: ${error.message}`);
+            scheduleData = {
+              pauseHour: null,
+              pauseDaysOfWeek: [],
+              pauseDaysOfWeekDisplay: null,
+              timezone: null,
+              scheduleDisplay: null
+            };
+          }
+        }
+
         // Prepare status document for collection
         clusterStatusUpdates.push({
           updateOne: {
@@ -64,7 +88,9 @@ exports = async function() {
                 mongoOwner: cluster.mongoOwner,
                 description: cluster.description,
                 tags: cluster.tags,
-                lastRefreshed: refreshTimestamp
+                lastRefreshed: refreshTimestamp,
+                // Add human-readable schedule fields
+                ...scheduleData
               }
             },
             upsert: true
@@ -126,3 +152,32 @@ exports = async function() {
     };
   }
 };
+
+// Helper function to format days of week array into readable string
+function formatDaysOfWeek(daysArray) {
+  if (!daysArray || !Array.isArray(daysArray) || daysArray.length === 0) {
+    return null;
+  }
+  
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const sortedDays = [...daysArray].sort((a, b) => a - b);
+  
+  return sortedDays.map(day => dayNames[day]).join(', ');
+}
+
+// Helper function to format complete schedule display
+function formatScheduleDisplay(parsedSchedule) {
+  if (!parsedSchedule) return null;
+  
+  const { pauseHour, pauseDaysOfWeek, timezone } = parsedSchedule;
+  
+  if (pauseHour === null || !pauseDaysOfWeek || pauseDaysOfWeek.length === 0) {
+    return null;
+  }
+  
+  const daysDisplay = formatDaysOfWeek(pauseDaysOfWeek);
+  const hourDisplay = pauseHour.toString().padStart(2, '0') + ':00';
+  const timezoneDisplay = timezone ? ` ${timezone}` : '';
+  
+  return `${daysDisplay} at ${hourDisplay}${timezoneDisplay}`;
+}
