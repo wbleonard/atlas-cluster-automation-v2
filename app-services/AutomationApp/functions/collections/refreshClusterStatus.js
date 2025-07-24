@@ -123,6 +123,10 @@ exports = async function(projectId = null, debugMode = false) {
             mongoVersion = cluster.mongoDBVersion.toString().split(".")[0];
           }
 
+          // Extract specific organizational tags
+          const ownedByTag = cluster.tags?.find(tag => tag.key === 'OWNED_BY');
+          const supportedByTag = cluster.tags?.find(tag => tag.key === 'SUPPORTED_BY');
+
           // Create status document
           const statusDoc = {
             name: cluster.name,
@@ -137,6 +141,10 @@ exports = async function(projectId = null, debugMode = false) {
             ageInDays: ageInDays,
             autoscaling: Boolean(cluster.autoScaling?.compute?.enabled),
             status: cluster.paused ? "PAUSED" : "ACTIVE",
+            
+            // Tag-based metadata
+            ownedBy: ownedByTag?.value || null,
+            supportedBy: supportedByTag?.value || null,
             
             // Schedule/automation data from tags
             ...scheduleData,

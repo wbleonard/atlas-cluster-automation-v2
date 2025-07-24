@@ -72,6 +72,9 @@ exports = async function() {
         }
 
         // Prepare status document for collection
+        const ownedByTag = cluster.tags?.find(tag => tag.key === 'OWNED_BY');
+        const supportedByTag = cluster.tags?.find(tag => tag.key === 'SUPPORTED_BY');
+        
         clusterStatusUpdates.push({
           updateOne: {
             filter: { projectId: project.projectId, clusterName: cluster.name },
@@ -88,6 +91,8 @@ exports = async function() {
                 mongoOwner: cluster.mongoOwner,
                 description: cluster.description,
                 tags: cluster.tags,
+                ownedBy: ownedByTag?.value || null,
+                supportedBy: supportedByTag?.value || null,
                 lastRefreshed: refreshTimestamp,
                 // Add human-readable schedule fields
                 ...scheduleData

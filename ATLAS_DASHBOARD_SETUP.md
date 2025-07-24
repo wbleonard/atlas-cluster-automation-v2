@@ -23,6 +23,15 @@ Contains individual cluster documents with:
   mongoOwner: "...",
   description: "...",
   tags: [...],
+  
+  // Specific organizational tags (extracted for easy querying)
+  ownedBy: "team-name",
+  supportedBy: "support-team",
+  
+  // Human-readable schedule fields
+  pauseDaysOfWeekDisplay: "Mon, Tue, Wed, Thu, Fri",
+  scheduleDisplay: "Mon, Tue, Wed, Thu, Fri at 22:00 America/New_York",
+  
   lastRefreshed: ISODate(...)
 }
 ```
@@ -148,7 +157,26 @@ Create metric cards using the dashboard summary document:
 - **Series:** `automationEnabled`
 - **Title:** "Automation Status by Project"
 
-### Step 5: Activity Timeline
+### Step 5: Ownership Analytics
+
+#### Ownership Distribution
+- **Chart Type:** Pie Chart
+- **Data Source:** `cluster_status` collection
+- **Filter:** `{_id: {$ne: "dashboard_summary"}, ownedBy: {$ne: null}}`
+- **Category:** `ownedBy`
+- **Value:** Count
+- **Title:** "Clusters by Owner"
+
+#### Support Team Distribution  
+- **Chart Type:** Bar Chart
+- **Data Source:** `cluster_status` collection
+- **Filter:** `{_id: {$ne: "dashboard_summary"}, supportedBy: {$ne: null}}`
+- **X-Axis:** `supportedBy`
+- **Y-Axis:** Count
+- **Title:** "Clusters by Support Team"
+- **Sort:** Descending by count
+
+### Step 6: Activity Timeline
 
 #### Recent Activity
 - **Chart Type:** Line Chart
@@ -167,7 +195,7 @@ Create metric cards using the dashboard summary document:
 - **Title:** "Operation Success Rate"
 - **Colors:** Green for SUCCESS, Red for FAILED/ERROR
 
-### Step 6: Cost Optimization Insights
+### Step 7: Cost Optimization Insights
 
 #### Pause Schedule Analysis
 - **Chart Type:** Heatmap
