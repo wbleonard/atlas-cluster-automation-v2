@@ -111,7 +111,8 @@ exports = async function() {
       await clusterStatusCollection.bulkWrite(clusterStatusUpdates);
     }
 
-    // Update summary statistics
+    // Update summary statistics in separate collection
+    const dashboardSummaryCollection = await context.functions.execute("collections/getDashboardSummaryCollection");
     const summaryStats = {
       _id: "dashboard_summary",
       totalProjects: projectsWithClusters.length,
@@ -122,7 +123,7 @@ exports = async function() {
       lastRefreshed: refreshTimestamp
     };
 
-    await clusterStatusCollection.replaceOne(
+    await dashboardSummaryCollection.replaceOne(
       { _id: "dashboard_summary" },
       summaryStats,
       { upsert: true }

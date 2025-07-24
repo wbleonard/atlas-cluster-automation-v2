@@ -19,6 +19,10 @@ exports = async function(projectId = null, debugMode = false) {
       throw new Error("Failed to get cluster status collection");
     }
 
+    // Always clean up duplicates before refresh to ensure data integrity
+    console.log("🧹 Cleaning up any duplicate entries...");
+    await cleanupDuplicateEntries(statusCollection, debugMode);
+
     // Get projects to process
     let projects;
     if (projectId) {
@@ -161,11 +165,19 @@ exports = async function(projectId = null, debugMode = false) {
 
         // Update status collection for this project
         if (clusterStatusList.length > 0) {
-          // Remove old data for this project
-          await statusCollection.deleteMany({ projectId: currentProjectId });
+          // Use upsert operations to avoid race conditions
+          const operations = clusterStatusList.map(statusDoc => ({
+            updateOne: {
+              filter: { 
+                projectId: currentProjectId,
+                name: statusDoc.name 
+              },
+              update: { $set: statusDoc },
+              upsert: true
+            }
+          }));
           
-          // Insert new status data
-          await statusCollection.insertMany(clusterStatusList);
+          await statusCollection.bulkWrite(operations);
           
           totalClustersProcessed += clusterStatusList.length;
           console.log(`✅ Updated status for ${clusterStatusList.length} clusters in ${projectName}`);
@@ -221,4 +233,50 @@ function formatScheduleDisplay(parsedSchedule) {
   const timezoneDisplay = timezone ? ` ${timezone}` : '';
   
   return `${daysDisplay} at ${hourDisplay}${timezoneDisplay}`;
+}
+
+// Helper function to clean up duplicate entries
+async function cleanupDuplicateEntries(statusCollection, debugMode = false) {
+  try {
+    // Find duplicates by projectId + name combination
+    const duplicates = await statusCollection.aggregate([
+      {
+        $group: {
+          _id: { projectId: "$projectId", name: "$name" },
+          count: { $sum: 1 },
+          docs: { $push: { _id: "$_id", lastUpdated: "$lastUpdated" } }
+        }
+      },
+      {
+        $match: { count: { $gt: 1 } }
+      }
+    ]).toArray();
+
+    if (duplicates.length === 0) {
+      console.log("✅ No duplicates found");
+      return;
+    }
+
+    console.log(`🧹 Found ${duplicates.length} sets of duplicates, cleaning up...`);
+
+    for (const duplicate of duplicates) {
+      // Sort by lastUpdated descending, keep the most recent
+      const sortedDocs = duplicate.docs.sort((a, b) => b.lastUpdated - a.lastUpdated);
+      const docsToDelete = sortedDocs.slice(1); // Remove all but the first (most recent)
+
+      if (debugMode) {
+        console.log(`🗑️ Removing ${docsToDelete.length} duplicates for ${duplicate._id.projectId}/${duplicate._id.name}`);
+      }
+
+      // Delete the older duplicates
+      const idsToDelete = docsToDelete.map(doc => doc._id);
+      await statusCollection.deleteMany({ _id: { $in: idsToDelete } });
+    }
+
+    console.log(`✅ Cleaned up duplicates for ${duplicates.length} clusters`);
+
+  } catch (error) {
+    console.error("❌ Error cleaning up duplicates:", error.message);
+    throw error;
+  }
 }
