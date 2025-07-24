@@ -108,6 +108,13 @@ exports = async function(projectId, clusterName, action = "test") {
         console.log("testScheduleTags: Project enable result:", JSON.stringify(projectResult, null, 2));
         return projectResult;
 
+      case "refresh-status":
+        // Test the new simplified status refresh
+        console.log("testScheduleTags: Testing cluster status refresh");
+        const refreshResult = await context.functions.execute("collections/refreshClusterStatus", "Hello world!");
+        console.log("testScheduleTags: Status refresh result:", JSON.stringify(refreshResult, null, 2));
+        return refreshResult;
+
       default:
         // Default test - just get the schedule if it exists
         const currentSchedule = await context.functions.execute(

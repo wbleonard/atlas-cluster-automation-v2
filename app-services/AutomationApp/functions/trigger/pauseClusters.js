@@ -1,116 +1,106 @@
 /*
- * Pulls project/cluster mappings from MongoDB and pauses the clusters marked with pause: true
+ * Atlas Function: pauseClusters
+ * Simplified function to pause all clusters with automation enabled
+ * Uses tag-based approach to find scheduled clusters
  */
-exports = async function () {
-  const username = context.values.get("AtlasPublicKey");
-  const password = context.values.get("AtlasPrivateKey");
 
-  const body = { paused: true };
-
-  let configuredClusters;
-
-  const clusterOpsCollection = await context.functions.execute("collections/getClusterOpsCollection");
+exports = async function() {
+  console.log("🔄 Starting bulk pause operation for all scheduled clusters...");
   
   try {
-    configuredClusters = await clusterOpsCollection
-      .find({})
-      .sort({ projectName: 1 })
-      .toArray();
+    // Use the tag-based approach to find clusters with schedules
+    const scheduledProjects = await context.functions.execute("atlas/getProjectsWithScheduledClusters");
 
-    if (!configuredClusters)
-      throw new Error("Clusters collection, cluster_automation, not found");
-  } catch (err) {
-    console.error("🔥 Error:", err.message);
-  }
+    if (!scheduledProjects || scheduledProjects.length === 0) {
+      console.log("pauseClusters: No projects with scheduled clusters found");
+      return { 
+        status: "success", 
+        message: "No scheduled clusters found", 
+        clustersProcessed: 0 
+      };
+    }
+    
+    console.log(`pauseClusters: Found ${scheduledProjects.length} projects with scheduled clusters`);
 
-  let currentProject = null;
+    let totalClustersPaused = 0;
+    let totalClustersSkipped = 0;
+    let totalClustersErrored = 0;
 
-  try {
-    for (const cluster of configuredClusters) {
-      const { projectId, projectName, clusters = [] } = cluster;
+    for (const project of scheduledProjects) {
+      const { projectId, projectName, clusters = [] } = project;
 
-      // New project? Print header
-      if (projectName !== currentProject) {
-        currentProject = projectName;
-        console.log(`\n📁 Project: ${projectName}`);
+      console.log(`\n📁 Processing Project: ${projectName} (${clusters.length} clusters)`);
+
+      // Filter clusters that have automation enabled
+      const enabledClusters = clusters.filter((c) => c.automationEnabled);
+      const disabledClusters = clusters.filter((c) => !c.automationEnabled);
+
+      // Log clusters that have automation disabled
+      for (const cluster of disabledClusters) {
+        console.log(` - ⏭️ Cluster ${cluster.name} has automation disabled. Skipping.`);
+        totalClustersSkipped++;
       }
 
-      // Separate clusters into those marked for pause and those not
-      const clustersToPause = clusters.filter((c) => c.pause);
-      const clustersNotToPause = clusters.filter((c) => !c.pause);
-
-      // Log clusters that are not configured to be paused
-      for (const cluster of clustersNotToPause) {
-        console.log(
-          ` - ℹ️ Cluster ${c.name} is not marked for pause. Skipping.`,
-        );
-      }
-
-      if (clustersToPause.length === 0) continue;
-
-      // Fetch current cluster states once per project
-      const atlasClusters = await context.functions.execute(
-        "atlas/getProjectClusters",
-        projectId,
-      );
-
-      if (!atlasClusters || !Array.isArray(atlasClusters)) {
-        console.log(` - ❌ Failed to fetch clusters:`, atlasClusters);
+      if (enabledClusters.length === 0) {
+        console.log(` - No clusters with automation enabled in project ${projectName}`);
         continue;
       }
 
-      // console.log("📊 Total clusters in project:", atlasClusters.length);
-      // console.log("🧪 atlasClusters:", JSON.stringify(atlasClusters, null, 2),);
-
-      for (const mappedCluster of clustersToPause) {
-        const clusterName = mappedCluster.name;
-        // console.log(
-        //   `🔍 Evaluating cluster ${clusterName} in project ${projectName} (ID: ${projectId})`,
-        // );
-
-        const current = atlasClusters.find((c) => c.name === clusterName);
-
-        if (!current) {
-          console.log(` - ⚠️ Cluster ${clusterName} not found.`);
-          continue;
-        }
-    
-        if (current.paused) {
-          console.log(` - ✅ Cluster ${clusterName} is already paused.`);
-          continue;
-        }
-
+      // Process each enabled cluster
+      for (const cluster of enabledClusters) {
         try {
-          console.log(` - 🔧 Pausing cluster ${clusterName}`);
-          console.log(`   📝 ${description}`);
-          console.log(`   👤 ${mongoOwner}`);
-          console.log(`   📧 ${customerContact}`);
-
+          console.log(` - 🔄 Attempting to pause cluster: ${cluster.name}`);
+          
           const result = await context.functions.execute(
-            "modifyCluster",
-            username,
-            password,
+            "setClusterPauseState",
             projectId,
-            clusterName,
-            body,
+            cluster.name,
+            "PAUSED",
+            "BULK_PAUSE_TRIGGER"
           );
-
-          console.log(
-            `Cluster ${clusterName} in Project ${projectName}: ${result.message}`,
-          );
-        } catch (error) {
-          console.error(`❌ Error pausing cluster ${clusterName}:`, error);
+          
+          if (result.status === "success") {
+            console.log(` - ✅ Successfully paused cluster: ${cluster.name}`);
+            totalClustersPaused++;
+          } else if (result.status === "skipped") {
+            console.log(` - ⏭️ Cluster ${cluster.name} was already paused`);
+            totalClustersSkipped++;
+          } else {
+            console.log(` - ❌ Failed to pause cluster ${cluster.name}: ${result.message}`);
+            totalClustersErrored++;
+          }
+          
+        } catch (clusterError) {
+          console.error(` - ❌ Error pausing cluster ${cluster.name}:`, clusterError.message);
+          totalClustersErrored++;
         }
       }
     }
 
-    console.log(`\nAll eligible cluster pause operations completed\n`);
-    return "Clusters Paused";
+    const summary = {
+      status: "completed",
+      message: `Bulk pause operation completed`,
+      totalProjects: scheduledProjects.length,
+      clustersPaused: totalClustersPaused,
+      clustersSkipped: totalClustersSkipped,
+      clustersErrored: totalClustersErrored,
+      timestamp: new Date()
+    };
+
+    console.log(`\n✅ Bulk pause operation completed:`);
+    console.log(`   � Projects processed: ${summary.totalProjects}`);
+    console.log(`   ⏸️ Clusters paused: ${summary.clustersPaused}`);
+    console.log(`   ⏭️ Clusters skipped: ${summary.clustersSkipped}`);
+    console.log(`   ❌ Clusters errored: ${summary.clustersErrored}`);
+
+    return summary;
+
   } catch (error) {
-    console.error(
-      "❌ An error occurred during the cluster modification operations:",
-      error,
-    );
-    throw new Error("Cluster pause operations failed");
+    console.error("❌ Error in bulk pause operation:", error.message);
+    return {
+      status: "error",
+      message: error.message,
+      timestamp: new Date()
+    };
   }
 };

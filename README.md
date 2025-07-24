@@ -190,9 +190,14 @@ The application leverages MongoDB Atlas App Services for **tag-based automation*
    - Processes schedules in local timezones and pauses/resumes clusters
    - Logs actions to activity_logs collection
 
-2. **Database Trigger - Audit Logging**
-   - Fires on updates to cluster_automation collection
-   - Records all changes to configurations in activity_logs
+2. **Optional Trigger - Status Reporting**
+   - `trigger/syncClusterStatus`: Updates cluster status collection for dashboard/reporting
+   - Simplified replacement for legacy `syncProjectClusters`
+   - Gets data from Atlas API + tags, no complex reconciliation needed
+
+3. **Database Trigger - Audit Logging**
+   - Fires on updates to activity_logs collection  
+   - Records all automation actions for compliance
 
 3. **Function - Atlas API Integration**
    - `modifyCluster`: Interacts with Atlas Admin API to pause/resume clusters
@@ -250,9 +255,12 @@ This project represents a **serverless, infrastructure-free approach** to cluste
 
 *Trigger Functions:*
 - `trigger/processScheduledClusterOperations`: **Tag-based** cluster processing (runs hourly)
-- `trigger/syncProjectClusters`: Syncs cluster inventory with Atlas (optional, for caching)
+- `trigger/syncClusterStatus`: Updates cluster status for reporting (simplified, tag-based)
 - `trigger/logClusterAutomationChange`: Records changes to cluster configurations in activity logs
 - `trigger/pauseClusters`: Pauses all clusters in specified projects (optional)
+- `trigger/resumeClusters`: Resumes all clusters in specified projects (optional)
+- `trigger/scaleClusterUp`: Used for scaling up clusters (optional)
+- `trigger/syncProjectClusters`: Legacy sync function (deprecated - use syncClusterStatus)
 - `trigger/resumeClusters`: Resumes all clusters in specified projects (optional)
 - `trigger/scaleClusterUp`: Used for scaling up clusters (optional)
 
@@ -260,13 +268,12 @@ This project represents a **serverless, infrastructure-free approach** to cluste
 - `setClusterPauseState`: Pauses or resumes a specific cluster
 - `modifyCluster`: Modifies cluster attributes through Atlas API
 
-*Data Access Functions (still used for metadata):*
-- `collections/getClusterOpsCollection`: Gets a handle to the cluster_automation collection
+*Collection Functions (for reporting/dashboard):*
+- `collections/getClusterStatusCollection`: Gets handle to the cluster status collection for reporting
+- `collections/refreshClusterStatus`: Updates reporting data from Atlas API + tags  
 - `collections/getActivityLogsCollection`: Gets a handle to the activity_logs collection
-- `atlas/getProjectCluster`: Retrieves a specific cluster from a project
-- `atlas/getProjectClusters`: Retrieves all clusters for a project
-- `atlas/getProjects`: Retrieves all projects from Atlas
-- `collections/reconcileClustersArray`: Reconciles local and Atlas cluster data
+- `collections/getClusterOpsCollection`: Legacy collection access (deprecated)
+- `collections/reconcileClustersArray`: Legacy reconciliation utility (deprecated)
 
 *UI Functions:*
 - `ui/getClusterList`: Retrieves cluster data for the UI

@@ -1,343 +1,143 @@
-exports = async function (
-  projectId,
-  clusterName,
-  desiredState,
-  actor = "SYSTEM_AUTOMATION",
-) {
-  // desiredState: true to PAUSE, false to RESUME
-  // actor: Identifier for who/what initiated the action (e.g., "SYSTEM_AUTOMATION", "UI_USER:<userId>")
+/*
+ * Atlas Function: setClusterPauseState
+ * Sets the pause state of a MongoDB Atlas cluster and logs the activity
+ * 
+ * Parameters:
+ * - projectId: Atlas project ID
+ * - clusterName: Name of the cluster to modify
+ * - targetState: "PAUSED" or "ACTIVE"
+ * - triggerSource: Source of the trigger (e.g., "SCHEDULED_TRIGGER", "MANUAL_TRIGGER")
+ * 
+ * Returns:
+ * - Object with status, message, and details
+ */
 
-  let clusterOpsCollection;
-  let activityLogsCollection;
+exports = async function(projectId, clusterName, targetState, triggerSource = "UNKNOWN") {
+  console.log(`🔄 setClusterPauseState: ${clusterName} → ${targetState} (source: ${triggerSource})`);
 
-  try {
-    // Use the specific utility functions to get collection handles
-    clusterOpsCollection = await context.functions.execute(
-      "collections/getClusterOpsCollection",
-    );
-    activityLogsCollection = await context.functions.execute(
-      "collections/getActivityLogsCollection",
-    );
-  } catch (error) {
-    console.error(
-      `setClusterPausedState: Critical error getting collection handles: ${error.message}`,
-      error,
-    );
-    return {
-      status: "error",
-      message: `Failed to initialize database connections: ${error.message}`,
-    };
+  if (!projectId || !clusterName || !targetState) {
+    const error = "Missing required parameters: projectId, clusterName, or targetState";
+    console.error(`❌ setClusterPauseState: ${error}`);
+    return { status: "error", message: error };
   }
 
-  const actionType = desiredState ? "PAUSE" : "RESUME";
-  const logEventTypePrefix = desiredState ? "PAUSE" : "RESUME";
-  let logStatus = "FAILURE"; // Default to failure, will be updated on success or skip
-  let logMessage = "";
-  const logDetails = {
-    action: actionType.toLowerCase(),
-    projectId: projectId,
-    clusterName: clusterName,
-    desiredState: desiredState,
-    actor: actor,
-  };
-
-  console.log(
-    `setClusterPausedState called for Project: ${projectId}, Cluster: ${clusterName}, Action: ${actionType}, Actor: ${actor}`,
-  );
+  if (!["PAUSED", "ACTIVE"].includes(targetState)) {
+    const error = `Invalid targetState: ${targetState}. Must be "PAUSED" or "ACTIVE"`;
+    console.error(`❌ setClusterPauseState: ${error}`);
+    return { status: "error", message: error };
+  }
 
   try {
-    // 1. Fetch cluster configuration for pre-checks
-    const projectDoc = await clusterOpsCollection.findOne({
-      projectId: projectId,
-    });
-    if (!projectDoc) {
-      logMessage = `Project document with ID ${projectId} not found in cluster_automation. Cannot ${actionType.toLowerCase()} cluster ${clusterName}.`;
-      console.error(logMessage);
-      // Log to activity_logs even if we can't update cluster_automation
-      await logActivity(
-        activityLogsCollection,
-        `${logEventTypePrefix}_ATTEMPT_FAILURE`,
-        actor,
-        projectId,
-        clusterName,
-        "FAILURE",
-        logMessage,
-        logDetails,
-      );
-      return { status: "error", message: logMessage };
+    // Get current cluster state
+    const cluster = await context.functions.execute("atlas/getProjectCluster", projectId, clusterName);
+    
+    if (!cluster) {
+      const error = `Cluster ${clusterName} not found in project ${projectId}`;
+      console.error(`❌ setClusterPauseState: ${error}`);
+      return { status: "error", message: error };
     }
 
-    const clusterConfig = projectDoc.clusters.find(
-      (c) => c.name === clusterName,
-    );
-    if (!clusterConfig) {
-      logMessage = `Cluster ${clusterName} not found in project ${projectId} (document _id: ${projectDoc._id}) within cluster_automation. Cannot ${actionType.toLowerCase()}.`;
-      console.error(logMessage);
-      await logActivity(
-        activityLogsCollection,
-        `${logEventTypePrefix}_ATTEMPT_FAILURE`,
-        actor,
-        projectId,
-        clusterName,
-        "FAILURE",
-        logMessage,
-        logDetails,
-      );
-      return { status: "error", message: logMessage };
-    }
-
-    logDetails.currentInstanceSize = clusterConfig.instanceSize; // Add instance size to log details
-
-    // 2. Pre-checks if attempting to PAUSE
-    if (desiredState === true) {
-      // If pausing
-      // Tier Check: M0, M2, M5 clusters cannot be paused via API [1]
-      const nonPausableTiers = ["M0", "M2", "M5"];
-      if (
-        clusterConfig.instanceSize &&
-        nonPausableTiers.includes(clusterConfig.instanceSize.toUpperCase())
-      ) {
-        logMessage = `Cluster ${clusterName} (Tier: ${clusterConfig.instanceSize}) cannot be paused via API. Action skipped.`;
-        console.warn(logMessage);
-        logStatus = "SKIPPED";
-        await logActivity(
-          activityLogsCollection,
-          `${logEventTypePrefix}_SKIPPED_TIER`,
-          actor,
-          projectId,
-          clusterName,
-          logStatus,
-          logMessage,
-          logDetails,
-        );
-        await updateLastActionStatus(
-          clusterOpsCollection,
-          projectId,
-          clusterName,
-          desiredState,
-          logStatus,
-          logMessage,
-        );
-        return { status: "skipped", message: logMessage };
-      }
-
-      // Cooldown Check: Must run for 60 minutes after resume before pausing again [1]
-      if (
-        clusterConfig.lastResumeAction &&
-        clusterConfig.lastResumeAction.timestamp
-      ) {
-        const lastResumeTime = new Date(
-          clusterConfig.lastResumeAction.timestamp,
-        );
-        const sixtyMinutesAgo = new Date(Date.now() - 60 * 60 * 1000);
-        if (lastResumeTime > sixtyMinutesAgo) {
-          logMessage = `Cluster ${clusterName} was resumed at ${lastResumeTime.toISOString()}, which is less than 60 minutes ago. Pause action skipped.`;
-          console.warn(logMessage);
-          logStatus = "SKIPPED";
-          await logActivity(
-            activityLogsCollection,
-            `${logEventTypePrefix}_SKIPPED_COOLDOWN`,
-            actor,
-            projectId,
-            clusterName,
-            logStatus,
-            logMessage,
-            logDetails,
-          );
-          await updateLastActionStatus(
-            clusterOpsCollection,
-            projectId,
-            clusterName,
-            desiredState,
-            logStatus,
-            logMessage,
-          );
-          return { status: "skipped", message: logMessage };
-        }
-      }
-    }
-
-    // 3. Call the user's modifyCluster function
-    console.log(
-      `Attempting to call modifyCluster for Project: ${projectId}, Cluster: ${clusterName}, Payload: { "paused": ${desiredState} }`,
-    );
-    const payload = { paused: desiredState };
-
-    let modifyClusterApiResponse;
-    username = await context.values.get("AtlasPublicKey");
-    password = await context.values.get("AtlasPrivateKey");
-    try {
-      // Execute the existing modifyCluster function [1]
-      modifyClusterApiResponse = await context.functions.execute(
-        "modifyCluster",
-        username,
-        password,
-        projectId,
-        clusterName,
-        payload,
-      );
-
-      // IMPORTANT: Assess success based on modifyCluster's behavior.
-      // If modifyCluster throws an error on API failure, this try block handles it.
-      // If modifyCluster returns an HTTP response object, you might need to check its statusCode.
-      // For this example, we assume if it doesn't throw, it's an indication of successful dispatch.
-      // A more robust check would inspect modifyClusterApiResponse if it's the direct HTTP response.
-      // e.g. if (modifyClusterApiResponse.statusCode < 200 || modifyClusterApiResponse.statusCode >= 300) throw new Error(...)
-
-      logStatus = "SUCCESS";
-      logMessage = `modifyCluster call for ${actionType.toLowerCase()} action on cluster ${clusterName} completed. Atlas API will process the request.`;
-      console.log(logMessage);
-      // You might want to log parts of modifyClusterApiResponse if it's useful and not too verbose
-      logDetails.modifyClusterResponseSummary = `Call to modifyCluster executed.`;
-    } catch (apiError) {
-      logStatus = "FAILURE";
-      logMessage = `setClusterPausedState: Error executing modifyCluster for ${clusterName} to ${actionType.toLowerCase()}: ${apiError.message}`;
-      console.error(logMessage, apiError);
-      logDetails.errorDetails = apiError.toString();
-      // The error will be logged and status updated below, no re-throw needed here.
-    }
-
-    // 4. Log to activity_logs
-    await logActivity(
-      activityLogsCollection,
-      `${logEventTypePrefix}_API_${logStatus}`,
-      actor,
-      projectId,
-      clusterName,
-      logStatus,
-      logMessage,
-      logDetails,
-    );
-
-    // 5. Update lastPauseAction / lastResumeAction in cluster_automation
-    await updateLastActionStatus(
-      clusterOpsCollection,
-      projectId,
-      clusterName,
-      desiredState,
-      logStatus,
-      logMessage,
-    );
-
-    if (logStatus === "SUCCESS") {
-      return { status: "success", message: logMessage, details: logDetails };
-    } else {
-      // This includes "FAILURE" and "SKIPPED" (though skipped returns earlier)
-      return {
-        status: logStatus.toLowerCase(),
-        message: logMessage,
-        details: logDetails,
+    const currentState = cluster.paused ? "PAUSED" : "ACTIVE";
+    
+    // Check if cluster is already in the target state
+    if (currentState === targetState) {
+      console.log(`⏭️ setClusterPauseState: Cluster ${clusterName} is already ${targetState}`);
+      return { 
+        status: "skipped", 
+        message: `Cluster ${clusterName} is already ${targetState}`,
+        currentState,
+        targetState
       };
     }
-  } catch (error) {
-    // Catch-all for unexpected errors within setClusterPausedState itself
-    logMessage = `setClusterPausedState: Unexpected error in setClusterPausedState for ${clusterName} (Action: ${actionType}): ${error.message}`;
-    console.error(logMessage, error);
-    logDetails.unexpectedError = error.toString();
-    // Attempt to log this critical failure to activity_logs
-    try {
-      await logActivity(
-        activityLogsCollection,
-        `${logEventTypePrefix}_SYSTEM_ERROR`,
-        actor,
-        projectId,
-        clusterName,
-        "FAILURE",
-        logMessage,
-        logDetails,
-      );
-    } catch (logError) {
-      console.error(
-        "CRITICAL: Failed to write to activity_logs during a system error in setClusterPausedState:",
-        logError,
-      );
+
+    // Prepare the modification body
+    const modificationBody = {
+      paused: targetState === "PAUSED"
+    };
+
+    console.log(`🔧 setClusterPauseState: Modifying cluster ${clusterName} from ${currentState} to ${targetState}`);
+
+    // Execute the cluster modification
+    const modifyResult = await context.functions.execute(
+      "modifyCluster",
+      context.values.get("AtlasPublicKey"),
+      context.values.get("AtlasPrivateKey"),
+      projectId,
+      clusterName,
+      modificationBody
+    );
+
+    if (modifyResult.error) {
+      console.error(`❌ setClusterPauseState: Cluster modification failed for ${clusterName}:`, modifyResult.error);
+      await logActivity(projectId, clusterName, targetState, triggerSource, "FAILED", modifyResult.error);
+      return {
+        status: "error",
+        message: `Cluster modification failed: ${modifyResult.error}`,
+        details: modifyResult
+      };
     }
-    return { status: "error", message: logMessage, details: logDetails };
+
+    console.log(`✅ setClusterPauseState: Successfully modified cluster ${clusterName} to ${targetState}`);
+
+    // Log the successful activity
+    await logActivity(projectId, clusterName, targetState, triggerSource, "SUCCESS", `Cluster ${clusterName} set to ${targetState}`);
+
+    return {
+      status: "success",
+      message: `Cluster ${clusterName} successfully set to ${targetState}`,
+      previousState: currentState,
+      newState: targetState,
+      triggerSource,
+      details: modifyResult
+    };
+
+  } catch (error) {
+    console.error(`❌ setClusterPauseState: Critical error for cluster ${clusterName}:`, error.message);
+    
+    // Attempt to log the failure
+    try {
+      await logActivity(projectId, clusterName, targetState, triggerSource, "ERROR", error.message);
+    } catch (logError) {
+      console.error(`❌ setClusterPauseState: Failed to log error activity:`, logError.message);
+    }
+
+    return {
+      status: "error",
+      message: `Critical error: ${error.message}`,
+      error: error.message
+    };
   }
 };
 
-// Helper function for consistent logging to activity_logs
-async function logActivity(
-  collection,
-  eventType,
-  actor,
-  projectId,
-  clusterId,
-  status,
-  message,
-  detailsObject,
-) {
+// Helper function to log activity
+async function logActivity(projectId, clusterName, targetState, triggerSource, status, message) {
   try {
+    const activityLogsCollection = await context.functions.execute("collections/getActivityLogsCollection");
+    
+    if (!activityLogsCollection) {
+      console.warn("⚠️ setClusterPauseState: Unable to get activity logs collection for logging");
+      return;
+    }
+
     const logEntry = {
       timestamp: new Date(),
-      eventType: eventType,
-      actor: actor,
-      projectId: projectId,
-      clusterId: clusterId, // Using clusterName as clusterId for logging consistency
-      status: status,
-      errorMessage:
-        status === "FAILURE" || status === "SKIPPED" ? message : null,
-      details: detailsObject | {},
+      action: targetState === "PAUSED" ? "CLUSTER_PAUSE" : "CLUSTER_RESUME",
+      projectId,
+      clusterName,
+      targetState,
+      triggerSource,
+      status,
+      message,
+      details: {
+        functionCaller: "setClusterPauseState"
+      }
     };
-    await collection.insertOne(logEntry);
-    console.log(
-      `Logged to activity_logs: Event: ${eventType}, Cluster: ${clusterId}, Status: ${status}`,
-    );
-  } catch (e) {
-    console.error(
-      `setClusterPausedState: Failed to insert log into activity_logs. Event: ${eventType}, Cluster: ${clusterId}. Error: ${e.message}`,
-      e,
-    );
-    // Depending on severity, you might want to handle this failure more explicitly.
-  }
-}
 
-// Helper function to update the lastPauseAction or lastResumeAction field
-async function updateLastActionStatus(
-  collection,
-  projectId,
-  clusterName,
-  isPauseAction,
-  status,
-  message,
-) {
-  const actionRecord = {
-    timestamp: new Date(),
-    status: status,
-    message: message,
-  };
-  const fieldToUpdate = isPauseAction
-    ? "clusters.$.lastPauseAction"
-    : "clusters.$.lastResumeAction";
+    await activityLogsCollection.insertOne(logEntry);
+    console.log(`📝 setClusterPauseState: Activity logged for ${clusterName}: ${status}`);
 
-  try {
-    const updateResult = await collection.updateOne(
-      { projectId: projectId, "clusters.name": clusterName },
-      { $set: { actionRecord } },
-    );
-
-    if (updateResult.matchedCount === 0) {
-      console.error(
-        `setClusterPausedState: Failed to find Project ${projectId} / Cluster ${clusterName} in cluster_automation to update lastActionStatus.`,
-      );
-    } else if (
-      updateResult.modifiedCount === 0 &&
-      updateResult.matchedCount === 1
-    ) {
-      // This could mean the document was found, but the specific cluster sub-document wasn't matched by "clusters.name",
-      // or the new actionRecord was identical to the existing one.
-      console.warn(
-        `setClusterPausedState: Document for Project ${projectId} was matched, but cluster ${clusterName}'s lastActionStatus was not modified. Check if cluster name is correct or if data was identical.`,
-      );
-    } else {
-      console.log(
-        `Updated ${fieldToUpdate} for Cluster ${clusterName} in Project ${projectId} with status: ${status}`,
-      );
-    }
-  } catch (e) {
-    console.error(
-      `setClusterPausedState: Failed to update lastActionStatus for Cluster ${clusterName} in Project ${projectId}. Error: ${e.message}`,
-      e,
-    );
+  } catch (error) {
+    console.error(`❌ setClusterPauseState: Failed to log activity for ${clusterName}:`, error.message);
+    // Don't throw error - logging failure shouldn't break the main operation
   }
 }

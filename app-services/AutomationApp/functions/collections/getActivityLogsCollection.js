@@ -20,7 +20,7 @@ exports = async function() {
     return collection;
 
   } catch (err) {
-    console.error("🔥 Error in getClusterOpsCollection:", err.message);
+    console.error("🔥 Error in getActivityLogsCollection:", err.message);
     return null;
   }
 };
