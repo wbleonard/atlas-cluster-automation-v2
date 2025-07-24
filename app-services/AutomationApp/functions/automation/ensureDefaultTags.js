@@ -96,13 +96,12 @@ exports = async function(projectId = null, clusterName = null, debugMode = false
                        missingTags.map(t => `${t.key}=${t.value}`).join(', '));
             
             try {
-              // Add each missing tag
-              for (const tag of missingTags) {
-                await context.functions.execute("tags/updateClusterTags", currentProjectId, cluster.name, [tag], []);
-                
-                if (debugMode) {
-                  console.log(`✅ Added tag ${tag.key}=${tag.value} to ${cluster.name}`);
-                }
+              // Add all missing tags in a single call
+              await context.functions.execute("tags/updateClusterTags", currentProjectId, cluster.name, missingTags);
+              
+              if (debugMode) {
+                console.log(`✅ Added ${missingTags.length} tags to ${cluster.name}:`, 
+                           missingTags.map(t => `${t.key}=${t.value}`).join(', '));
               }
               
               clustersUpdated++;
@@ -127,6 +126,37 @@ exports = async function(projectId = null, clusterName = null, debugMode = false
               }
               
             } catch (tagError) {
+              // Check if this is a free tier cluster limitation
+              if (tagError.message && (
+                tagError.message.includes("TENANT_CLUSTER_UPDATE_UNSUPPORTED") ||
+                tagError.message.includes("Cannot update a M0/M2/M5 cluster") ||
+                tagError.message.includes("Update failed with status 400")
+              )) {
+                console.log(`⏭️ Skipping free tier cluster ${cluster.name} - API updates not supported (M0/M2/M5 clusters can only be updated manually)`);
+                
+                // Log as skipped rather than failed
+                try {
+                  const activityCollection = await context.functions.execute("collections/getActivityLogsCollection");
+                  await activityCollection.insertOne({
+                    timestamp: new Date(),
+                    action: "DEFAULT_TAGS_SKIPPED",
+                    projectId: currentProjectId,
+                    clusterName: cluster.name,
+                    details: {
+                      reason: "Free tier cluster (M0/M2/M5) - API updates not supported",
+                      attemptedTags: missingTags,
+                      totalTagsAttempted: missingTags.length
+                    },
+                    status: "SKIPPED",
+                    triggerSource: "AUTOMATED_ENFORCEMENT"
+                  });
+                } catch (logError) {
+                  console.warn(`⚠️ Failed to log skip reason for ${cluster.name}: ${logError.message}`);
+                }
+                
+                continue; // Continue to next cluster
+              }
+              
               console.error(`❌ Failed to add tags to ${cluster.name}: ${tagError.message}`);
               
               // Log the failure

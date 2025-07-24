@@ -55,6 +55,11 @@ exports = async function (username, password, projectID, clusterName, body) {
 
     // Proceed to patch since state differs
     clusterUrl.body = JSON.stringify(body);
+    
+    // Debug logging for tag updates
+    if (body.tags) {
+      console.log(`modifyCluster: Updating tags for ${clusterName}:`, JSON.stringify(body.tags, null, 2));
+    }
 
     const patchResponse = await context.http.patch(clusterUrl);
     const patchBodyText = patchResponse.body?.text() || "";
@@ -66,7 +71,9 @@ exports = async function (username, password, projectID, clusterName, body) {
       console.error(`modifyCluster: Cluster is busy (409): ${patchedCluster.detail || "No additional details."}`);
       throw new Error("Cluster is busy. Try again later.");
     } else {
-      console.error(`modifyCluster: Failed to update cluster: ${patchResponse.statusCode}`, patchedCluster);
+      console.error(`modifyCluster: Failed to update cluster: ${patchResponse.statusCode}`);
+      console.error(`modifyCluster: Request body was:`, JSON.stringify(body, null, 2));
+      console.error(`modifyCluster: Response body:`, JSON.stringify(patchedCluster, null, 2));
       throw new Error(`modifyCluster: Update failed with status ${patchResponse.statusCode}`);
     }
 

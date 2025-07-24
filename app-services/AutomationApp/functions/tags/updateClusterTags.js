@@ -10,9 +10,14 @@ exports = async function(projectId, clusterName, tags) {
     // Only set default tags if none were provided
     if (!tags) {
       tags = [
+        // Automation tags
         { key: "automation:pause-schedule", value: "days:1.2.3.4.5:hour:22:timezone:America-New_York" },
-        { key: "environment", value: "test" },
-        { key: "owner", value: "automation-system" }
+        { key: "automation:enabled", value: "true" },
+        
+        // Organizational tags
+        { key: "OWNED_BY", value: "test-team" },
+        { key: "SUPPORTED_BY", value: "platform-team" },
+        { key: "PROJECT_STATUS", value: "active" }
       ];
     }
     console.log(`updateClusterTags: Using test defaults - Project: ${projectId}, Cluster: ${clusterName}, Tags: ${JSON.stringify(tags)}`);
@@ -25,26 +30,39 @@ exports = async function(projectId, clusterName, tags) {
   try {
     console.log(`updateClusterTags: Updating tags for cluster ${clusterName} in project ${projectId}`);
     
-    // First get current cluster state to preserve existing configuration
+    // First get current cluster state to preserve existing configuration and tags
     const currentCluster = await context.functions.execute("atlas/getProjectCluster", projectId, clusterName);
     
     if (!currentCluster) {
       throw new Error(`Cluster ${clusterName} not found in project ${projectId}`);
     }
     
+    // Merge existing tags with new tags (new tags override existing ones with same key)
+    const existingTags = currentCluster.tags || [];
+    const existingTagsMap = new Map(existingTags.map(tag => [tag.key, tag.value]));
+    
+    // Add/update with new tags
+    tags.forEach(tag => {
+      existingTagsMap.set(tag.key, tag.value);
+    });
+    
+    // Convert back to array format
+    const mergedTags = Array.from(existingTagsMap.entries()).map(([key, value]) => ({ key, value }));
+    
+    console.log(`updateClusterTags: Merging ${existingTags.length} existing tags with ${tags.length} new tags`);
+    
     // Get stored credentials
     const username = await context.values.get("AtlasPublicKey");
     const password = await context.values.get("AtlasPrivateKey");
     
-    // Use the existing modifyCluster function to update only the tags
-    // The modifyCluster function expects just the fields to update
+    // Use the existing modifyCluster function to update with merged tags
     const result = await context.functions.execute(
       "modifyCluster",
       username,
       password,
       projectId,
       clusterName,
-      { tags: tags }
+      { tags: mergedTags }
     );
     
     console.log(`updateClusterTags: Successfully updated tags for cluster ${clusterName}`);
