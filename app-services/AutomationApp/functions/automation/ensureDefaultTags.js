@@ -157,6 +157,37 @@ exports = async function(projectId = null, clusterName = null, debugMode = false
                 continue; // Continue to next cluster
               }
               
+              // Check if cluster is paused or transitioning
+              if (tagError.message && (
+                tagError.message.includes("while it is paused") ||
+                tagError.message.includes("being paused") ||
+                tagError.message.includes("Cluster is busy")
+              )) {
+                console.log(`⏭️ Skipping paused cluster ${cluster.name} - tags cannot be updated while cluster is paused or transitioning`);
+                
+                // Log as skipped rather than failed
+                try {
+                  const activityCollection = await context.functions.execute("collections/getActivityLogsCollection");
+                  await activityCollection.insertOne({
+                    timestamp: new Date(),
+                    action: "DEFAULT_TAGS_SKIPPED",
+                    projectId: currentProjectId,
+                    clusterName: cluster.name,
+                    details: {
+                      reason: "Cluster is paused or transitioning - tags cannot be updated",
+                      attemptedTags: missingTags,
+                      totalTagsAttempted: missingTags.length
+                    },
+                    status: "SKIPPED",
+                    triggerSource: "AUTOMATED_ENFORCEMENT"
+                  });
+                } catch (logError) {
+                  console.warn(`⚠️ Failed to log skip reason for ${cluster.name}: ${logError.message}`);
+                }
+                
+                continue; // Continue to next cluster
+              }
+              
               console.error(`❌ Failed to add tags to ${cluster.name}: ${tagError.message}`);
               
               // Log the failure

@@ -41,16 +41,17 @@ exports = async function (username, password, projectID, clusterName, body) {
       };
     }
 
-    // Check if the current state matches the desired changes
-    const isAlreadyPaused = body.paused === true && currentCluster.paused === true;
-    const isAlreadyUnpaused = body.paused === false && currentCluster.paused === false;
+    // Check if the current state matches the desired changes (only for pause/resume operations)
+    if (body.paused !== undefined) {
+      const isAlreadyPaused = body.paused === true && currentCluster.paused === true;
+      const isAlreadyUnpaused = body.paused === false && currentCluster.paused === false;
 
-    if (isAlreadyPaused || isAlreadyUnpaused) {
-      //console.log(`modifyCluster: Cluster is paused: ${currentCluster.paused}`);
-      return {
-        message: "No changes applied as the cluster is paused.",
-        cluster: currentCluster,
-      };
+      if (isAlreadyPaused || isAlreadyUnpaused) {
+        return {
+          message: "No changes applied as the cluster is already in the desired pause state.",
+          cluster: currentCluster,
+        };
+      }
     }
 
     // Proceed to patch since state differs
