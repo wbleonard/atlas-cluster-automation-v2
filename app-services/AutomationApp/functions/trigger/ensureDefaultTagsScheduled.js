@@ -1,5 +1,7 @@
 // Atlas Scheduled Trigger Function: ensureDefaultTagsScheduled
-// Runs weekly to ensure all clusters have required default tags
+// Runs on a configurable schedule to ensure all clusters have required default tags
+// Default: Weekly on Monday at midnight UTC (disabled by default)
+// Configure schedule in Atlas App Services → Triggers → ensureDefaultTagsTrigger
 
 exports = async function() {
   console.log("⏰ SCHEDULED TRIGGER: Starting default tag enforcement");
@@ -24,7 +26,7 @@ exports = async function() {
         clusterName: null,
         details: {
           error: error.message,
-          schedule: "weekly-monday-midnight"
+          schedule: "configurable-scheduled-trigger"
         },
         status: "FAILED",
         triggerSource: "SCHEDULED_TRIGGER"

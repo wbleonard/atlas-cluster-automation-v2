@@ -43,11 +43,22 @@ The system enforces these tags on all clusters:
 
 ## Enforcement Methods
 
-### 1. Scheduled Enforcement (Automatic)
-- **Schedule**: Every Monday at midnight UTC
+### 1. Scheduled Enforcement (Configurable)
+- **Default Schedule**: Every Monday at midnight UTC (`0 0 * * 1`)
 - **Trigger**: `ensureDefaultTagsTrigger` 
 - **Function**: `ensureDefaultTagsScheduled`
+- **Initial State**: Disabled by default - you choose when to enable
 - **Action**: Scans all clusters across all projects and adds missing default tags
+
+**To Configure the Schedule:**
+1. In Atlas App Services, go to Triggers
+2. Find `ensureDefaultTagsTrigger` 
+3. Edit the schedule using cron format:
+   - `0 0 * * 1` = Monday at midnight UTC
+   - `0 2 * * 0` = Sunday at 2 AM UTC  
+   - `0 18 * * 5` = Friday at 6 PM UTC
+   - `0 0 1 * *` = First day of every month at midnight
+4. Enable the trigger when ready
 
 ### 2. Manual Enforcement (Atlas API)
 - **Function**: `ensureDefaultTags`

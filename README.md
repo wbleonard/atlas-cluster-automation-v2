@@ -318,7 +318,17 @@ This project represents a **serverless, infrastructure-free approach** to cluste
    - In App Services console, go to Functions → Dependencies
    - Add: `moment-timezone`
 
-5. **Test the Setup**
+5. **Configure Default Tags Enforcement (Optional)**
+   - The system includes automatic tag enforcement that's disabled by default
+   - In App Services console, go to Triggers → `ensureDefaultTagsTrigger`
+   - Configure the schedule using cron format:
+     - `0 0 * * 1` = Monday at midnight UTC (default)
+     - `0 2 * * 0` = Sunday at 2 AM UTC  
+     - `0 18 * * 5` = Friday at 6 PM UTC
+     - `0 0 1 * *` = First day of every month at midnight
+   - Enable the trigger when you're ready for automatic tag enforcement
+
+6. **Test the Setup**
    ```javascript
    // In App Services console, run this test:
    await testScheduleTags("Hello world!", "", "set");
