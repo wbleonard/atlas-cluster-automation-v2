@@ -1,5 +1,5 @@
 exports = async function() {
-  const collection = await context.functions.execute("utility/getClusterOpsCollection");
+  const collection = await context.functions.execute("collections/getClusterOpsCollection");
   const projects = await collection.find({}).toArray();
 
   const publicKey = await context.values.get("AtlasPublicKey");

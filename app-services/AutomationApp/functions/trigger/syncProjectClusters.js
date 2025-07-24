@@ -34,10 +34,10 @@ exports = async function () {
   }
 
   const clusterOpsCollection = await context.functions.execute(
-    "utility/getClusterOpsCollection",
+    "collections/getClusterOpsCollection",
   );
 
-  const projects = await context.functions.execute("utility/getProjects");
+  const projects = await context.functions.execute("atlas/getProjects");
 
   if (!projects || !Array.isArray(projects)) {
     console.error("❌ Failed to retrieve projects.");
@@ -55,7 +55,7 @@ exports = async function () {
     let clusters;
     try {
       clusters = await context.functions.execute(
-        "utility/getProjectClusters",
+        "atlas/getProjectClusters",
         projectId,
       );
     } catch (error) {
@@ -100,7 +100,7 @@ exports = async function () {
     let reconciledClusters;
     try {
       reconciledClusters = await context.functions.execute(
-        "utility/reconcileClustersArray",
+        "collections/reconcileClustersArray",
         clusters,
         existingClusters,
         DEBUG_MODE  // Pass the debug flag to reconcileClustersArray

@@ -13,10 +13,10 @@ exports = async function() {
   let clusterOpsCollection;
   try {
     // Using your existing utility function from "Cluster Ops" document [1]
-    clusterOpsCollection = await context.functions.execute("utility/getClusterOpsCollection");
+    clusterOpsCollection = await context.functions.execute("collections/getClusterOpsCollection");
     if (!clusterOpsCollection) {
       // Your utility function returns null on error, so we need to handle that.
-      throw new Error("utility/getClusterOpsCollection returned null, indicating an error in accessing the collection.");
+      throw new Error("collections/getClusterOpsCollection returned null, indicating an error in accessing the collection.");
     }
   } catch (error) {
     console.error(`getClusterList: CRITICAL - Failed to get cluster_automation collection handle: ${error.message}`, error);

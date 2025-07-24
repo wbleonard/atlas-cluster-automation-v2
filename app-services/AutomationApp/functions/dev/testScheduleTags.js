@@ -28,7 +28,7 @@ exports = async function(projectId, clusterName, action = "test") {
       case "get":
         // Get the current schedule
         const schedule = await context.functions.execute(
-          "utility/getClusterScheduleFromTags",
+          "tags/getClusterScheduleFromTags",
           projectId,
           clusterName
         );
@@ -38,7 +38,7 @@ exports = async function(projectId, clusterName, action = "test") {
       case "remove":
         // Remove the schedule
         const removeResult = await context.functions.execute(
-          "utility/removeClusterScheduleTag",
+          "tags/removeClusterScheduleTag",
           projectId,
           clusterName
         );
@@ -57,7 +57,7 @@ exports = async function(projectId, clusterName, action = "test") {
         const parseResults = [];
         for (const testValue of testValues) {
           try {
-            const parsed = await context.functions.execute("utility/parseScheduleTag", testValue);
+            const parsed = await context.functions.execute("tags/parseScheduleTag", testValue);
             parseResults.push({ input: testValue, parsed: parsed, status: "success" });
           } catch (error) {
             parseResults.push({ input: testValue, error: error.message, status: "error" });
@@ -69,14 +69,49 @@ exports = async function(projectId, clusterName, action = "test") {
 
       case "list":
         // List all projects with scheduled clusters
-        const projects = await context.functions.execute("utility/getProjectsWithScheduledClusters");
+        const projects = await context.functions.execute("atlas/getProjectsWithScheduledClusters");
         console.log("testScheduleTags: Projects with scheduled clusters:", JSON.stringify(projects, null, 2));
         return projects;
+
+      case "enable":
+        // Enable automation for test cluster
+        console.log("testScheduleTags: Enabling automation for test cluster");
+        const enableResult = await context.functions.execute("automation/setClusterAutomationEnabled", projectId, clusterName, true);
+        console.log("testScheduleTags: Enable automation result:", JSON.stringify(enableResult));
+        return enableResult;
+
+      case "disable":
+        // Disable automation for test cluster
+        console.log("testScheduleTags: Disabling automation for test cluster");
+        const disableResult = await context.functions.execute("automation/setClusterAutomationEnabled", projectId, clusterName, false);
+        console.log("testScheduleTags: Disable automation result:", JSON.stringify(disableResult));
+        return disableResult;
+
+      case "status":
+        // Get automation status for test cluster
+        console.log("testScheduleTags: Getting automation status for test cluster");
+        const statusResult = await context.functions.execute("automation/getClusterAutomationStatus", projectId, clusterName);
+        console.log("testScheduleTags: Automation status result:", JSON.stringify(statusResult));
+        return statusResult;
+
+      case "org-setup":
+        // Set org-wide schedule (disabled by default for safety)
+        console.log("testScheduleTags: Setting up org-wide schedule (disabled by default)");
+        const orgResult = await context.functions.execute("automation/setOrgWideSchedule", "Hello world!");
+        console.log("testScheduleTags: Org-wide setup result:", JSON.stringify(orgResult, null, 2));
+        return orgResult;
+
+      case "enable-project":
+        // Enable automation for all scheduled clusters in test project
+        console.log("testScheduleTags: Enabling automation for all scheduled clusters in test project");
+        const projectResult = await context.functions.execute("automation/enableAutomationForProject", "Hello world!");
+        console.log("testScheduleTags: Project enable result:", JSON.stringify(projectResult, null, 2));
+        return projectResult;
 
       default:
         // Default test - just get the schedule if it exists
         const currentSchedule = await context.functions.execute(
-          "utility/getClusterScheduleFromTags",
+          "tags/getClusterScheduleFromTags",
           projectId,
           clusterName
         );

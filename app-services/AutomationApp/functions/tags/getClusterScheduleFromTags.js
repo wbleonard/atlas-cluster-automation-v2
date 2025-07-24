@@ -18,7 +18,7 @@ exports = async function(projectId, clusterName) {
     console.log(`getClusterScheduleFromTags: Fetching tags for cluster ${clusterName} in project ${projectId}`);
     
     // Use the existing getProjectCluster function to fetch cluster details
-    const clusterDetails = await context.functions.execute("utility/getProjectCluster", projectId, clusterName);
+    const clusterDetails = await context.functions.execute("atlas/getProjectCluster", projectId, clusterName);
     
     if (!clusterDetails) {
       throw new Error(`Cluster ${clusterName} not found in project ${projectId}`);
@@ -36,7 +36,7 @@ exports = async function(projectId, clusterName) {
 
     // Parse the schedule tag value using our utility function
     try {
-      const schedule = await context.functions.execute("utility/parseScheduleTag", scheduleTag.value);
+      const schedule = await context.functions.execute("tags/parseScheduleTag", scheduleTag.value);
       console.log(`getClusterScheduleFromTags: Parsed schedule for cluster ${clusterName}:`, JSON.stringify(schedule));
       return schedule;
     } catch (parseError) {

@@ -8,7 +8,7 @@ exports = async function() {
   let projectsToProcess;
   try {
     // Get projects with scheduled clusters from Atlas tags instead of collection
-    projectsToProcess = await context.functions.execute("utility/getProjectsWithScheduledClusters");
+    projectsToProcess = await context.functions.execute("atlas/getProjectsWithScheduledClusters");
   } catch (error) {
     console.error(`processScheduledClusterOperations: CRITICAL - Failed to fetch projects with scheduled clusters: ${error.message}`, error);
     return { status: "error", message: `Failed to fetch scheduled clusters from Atlas: ${error.message}` };

@@ -13,10 +13,10 @@ exports = async function (
   try {
     // Use the specific utility functions to get collection handles
     clusterOpsCollection = await context.functions.execute(
-      "utility/getClusterOpsCollection",
+      "collections/getClusterOpsCollection",
     );
     activityLogsCollection = await context.functions.execute(
-      "utility/getActivityLogsCollection",
+      "collections/getActivityLogsCollection",
     );
   } catch (error) {
     console.error(

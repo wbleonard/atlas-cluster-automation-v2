@@ -9,7 +9,7 @@ exports = async function () {
 
   let configuredClusters;
 
-  const clusterOpsCollection = await context.functions.execute("utility/getClusterOpsCollection");
+  const clusterOpsCollection = await context.functions.execute("collections/getClusterOpsCollection");
   
   try {
     configuredClusters = await clusterOpsCollection
@@ -50,7 +50,7 @@ exports = async function () {
 
       // Fetch current cluster states once per project
       const atlasClusters = await context.functions.execute(
-        "utility/getProjectClusters",
+        "atlas/getProjectClusters",
         projectId,
       );
 

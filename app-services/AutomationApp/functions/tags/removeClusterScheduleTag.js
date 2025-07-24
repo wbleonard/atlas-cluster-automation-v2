@@ -17,7 +17,7 @@ exports = async function(projectId, clusterName) {
     console.log(`removeClusterScheduleTag: Removing schedule tag for cluster ${clusterName} in project ${projectId}`);
 
     // Get current cluster configuration using existing utility
-    const clusterData = await context.functions.execute("utility/getProjectCluster", projectId, clusterName);
+    const clusterData = await context.functions.execute("atlas/getProjectCluster", projectId, clusterName);
     
     if (!clusterData) {
       throw new Error(`Cluster ${clusterName} not found in project ${projectId}`);
@@ -40,7 +40,7 @@ exports = async function(projectId, clusterName) {
     tags = tags.filter(tag => tag.key !== 'automation:pause-schedule');
 
     // Update the cluster with the filtered tags using existing utility
-    await context.functions.execute("utility/updateClusterTags", projectId, clusterName, tags);
+    await context.functions.execute("tags/updateClusterTags", projectId, clusterName, tags);
 
     console.log(`removeClusterScheduleTag: Successfully removed schedule tag from cluster ${clusterName}`);
     return {

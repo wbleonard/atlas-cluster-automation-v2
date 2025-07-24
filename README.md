@@ -4,7 +4,7 @@ A **serverless automation solution** for managing MongoDB Atlas cluster pause sc
 
 ## Overview
 
-This solution provides automated pause scheduling for MongoDB Atlas clusters across multiple projects using Atlas cluster tags. It helps optimize resource usage and reduce costs by automating the pausing of clusters when they're not needed. 
+This solution provides automated pause scheduling for MongoDB Atlas clusters across multiple projects using Atlas cluster tags. It helps optimize resource usage and reduce costs by automating the pausing of clusters when they're not needed. **Version 2 uses Atlas cluster tags for schedule configuration, eliminating the need for a separate database collection and making schedules visible directly in the Atlas UI.**
 
 ## Architecture
 
@@ -44,10 +44,17 @@ Key: automation:pause-schedule
 Value: days:1.2.3.4.5:hour:22:timezone:America-New_York
 ```
 
+**Optional Automation Control:**
+```
+Key: automation:enabled  
+Value: false (to disable automation, omit tag or use 'true' to enable)
+```
+
 **Tag Format Components:**
 - `days:1.2.3.4.5` - Days of week (0=Sunday, 6=Saturday), dot-separated
 - `hour:22` - Hour to pause (0-23, 24-hour format)
 - `timezone:America-New_York` - IANA timezone (/ converted to - for Atlas compatibility)
+- `automation:enabled` - Optional control tag (default: enabled if schedule exists)
 
 **Benefits:**
 - ✅ Visible in Atlas UI for transparency
@@ -55,6 +62,7 @@ Value: days:1.2.3.4.5:hour:22:timezone:America-New_York
 - ✅ Self-documenting with descriptive format
 - ✅ Direct integration with Atlas infrastructure
 - ✅ Version controlled with cluster configuration
+- ✅ Easy enable/disable without removing schedule configuration
 
 ### Optional Activity Logging
 If audit trails are needed, activity logs can be stored in any MongoDB collection:
@@ -90,25 +98,50 @@ atlas clusters tags add <clusterName> --projectId <projectId> \
 **Option C: Direct in Atlas UI**
 - Navigate to your cluster → Configuration → Tags
 - Add tag: `automation:pause-schedule` = `days:1.2.3.4.5:hour:22:timezone:America-New_York`
+- Optionally add: `automation:enabled` = `false` (to temporarily disable automation)
 
 ### 2. Tag Creation
 Any of the above methods creates an Atlas cluster tag:
 ```
 Key: automation:pause-schedule
 Value: days:1.2.3.4.5:hour:22:timezone:America-New_York
+
+# Optional: Disable automation temporarily  
+Key: automation:enabled
+Value: false
 ```
 
 ### 3. Automated Processing
 - Hourly trigger scans all Atlas projects for clusters with `automation:pause-schedule` tags
+- **Checks `automation:enabled` tag** - skips clusters with `automation:enabled=false`
 - Parses tag values to determine when clusters should be paused
 - Converts schedule to local timezone and checks if current time matches
 - Pauses/resumes clusters as needed and logs actions
 
 ### 4. Management & Visibility
 - **Atlas UI**: Tags visible under cluster Configuration → Tags
-- **Atlas CLI**: Use `atlas clusters tags list` to view schedules
+- **Atlas CLI**: Use `atlas clusters tags list` to view schedules and automation status
 - **App Services Logs**: View automation activity in App Services console
 - **Activity Logs**: Optional MongoDB collection for detailed audit trail
+
+## Automation Control
+
+### Temporarily Disable Automation
+```javascript
+// Disable automation without removing schedule
+await setClusterAutomationEnabled("Hello world!", "", false);
+
+// Re-enable automation
+await setClusterAutomationEnabled("Hello world!", "", true);
+
+// Check automation status
+await getClusterAutomationStatus("Hello world!", "");
+```
+
+### Atlas UI Method
+1. Go to cluster → Configuration → Tags
+2. Add tag: `automation:enabled` = `false` (to disable)
+3. Remove the tag or set to `true` (to enable)
 
 ## Key Features
 
@@ -132,15 +165,21 @@ The application leverages MongoDB Atlas App Services for **tag-based automation*
 ### Core Tag-Based Functions
 
 **Schedule Management:**
-- `utility/setClusterScheduleTag`: Creates/updates `automation:pause-schedule` tags on clusters
-- `utility/getClusterScheduleFromTags`: Retrieves schedule configuration from cluster tags
-- `utility/parseScheduleTag`: Parses tag values into usable schedule objects
-- `utility/removeClusterScheduleTag`: Removes schedule tags from clusters
-- `utility/updateClusterTags`: Updates cluster tags via Atlas API
-- `utility/testScheduleTags`: Comprehensive testing utility for tag operations
+- `tags/setClusterScheduleTag`: Creates/updates `automation:pause-schedule` tags on clusters
+- `tags/getClusterScheduleFromTags`: Retrieves schedule configuration from cluster tags
+- `tags/parseScheduleTag`: Parses tag values into usable schedule objects
+- `tags/removeClusterScheduleTag`: Removes schedule tags from clusters
+- `tags/updateClusterTags`: Updates cluster tags via Atlas API
+- `dev/testScheduleTags`: Comprehensive testing utility for tag operations
+
+**Automation Control:**
+- `automation/setClusterAutomationEnabled`: Enable/disable automation without removing schedule
+- `automation/getClusterAutomationStatus`: Check automation and schedule status for a cluster
+- `automation/setOrgWideSchedule`: Set default schedule for all clusters in organization (disabled by default)
+- `automation/enableAutomationForProject`: Enable automation for all scheduled clusters in a project
 
 **Project Discovery:**
-- `utility/getProjectsWithScheduledClusters`: Scans all Atlas projects for clusters with schedule tags
+- `atlas/getProjectsWithScheduledClusters`: Scans all Atlas projects for clusters with schedule tags (respects automation:enabled)
 
 ### Automation Triggers
 
@@ -194,14 +233,18 @@ This project represents a **serverless, infrastructure-free approach** to cluste
 
 #### Key App Services Components
 
-**Tag-Based Utility Functions:**
-- `utility/setClusterScheduleTag`: Creates/updates schedule tags with format validation
-- `utility/getClusterScheduleFromTags`: Retrieves and parses schedule configuration from tags  
-- `utility/parseScheduleTag`: Parses descriptive tag format into schedule objects
-- `utility/removeClusterScheduleTag`: Removes schedule tags from clusters
-- `utility/updateClusterTags`: Updates cluster tags via Atlas API
-- `utility/getProjectsWithScheduledClusters`: Discovers all clusters with schedule tags
-- `utility/testScheduleTags`: Testing utility with "Hello world!" shortcuts
+**Tag-Based Functions:**
+- `tags/setClusterScheduleTag`: Creates/updates schedule tags with format validation
+- `tags/getClusterScheduleFromTags`: Retrieves and parses schedule configuration from tags  
+- `tags/parseScheduleTag`: Parses descriptive tag format into schedule objects
+- `tags/removeClusterScheduleTag`: Removes schedule tags from clusters
+- `tags/updateClusterTags`: Updates cluster tags via Atlas API
+- `atlas/getProjectsWithScheduledClusters`: Discovers all clusters with schedule tags (respects automation:enabled)
+- `dev/testScheduleTags`: Testing utility with "Hello world!" shortcuts
+- `automation/setClusterAutomationEnabled`: Enable/disable automation without removing schedule configuration
+- `automation/getClusterAutomationStatus`: Check automation and schedule status for clusters
+- `automation/setOrgWideSchedule`: Set default schedule across all clusters in organization (disabled by default)
+- `automation/enableAutomationForProject`: Enable automation for all scheduled clusters in a project
 
 **Functions:**
 
@@ -217,13 +260,13 @@ This project represents a **serverless, infrastructure-free approach** to cluste
 - `setClusterPauseState`: Pauses or resumes a specific cluster
 - `modifyCluster`: Modifies cluster attributes through Atlas API
 
-*Legacy Utility Functions (still used for metadata):*
-- `utility/getClusterOpsCollection`: Gets a handle to the cluster_automation collection
-- `utility/getActivityLogsCollection`: Gets a handle to the activity_logs collection
-- `utility/getProjectCluster`: Retrieves a specific cluster from a project
-- `utility/getProjectClusters`: Retrieves all clusters for a project
-- `utility/getProjects`: Retrieves all projects from Atlas
-- `utility/reconcileClustersArray`: Reconciles local and Atlas cluster data
+*Data Access Functions (still used for metadata):*
+- `collections/getClusterOpsCollection`: Gets a handle to the cluster_automation collection
+- `collections/getActivityLogsCollection`: Gets a handle to the activity_logs collection
+- `atlas/getProjectCluster`: Retrieves a specific cluster from a project
+- `atlas/getProjectClusters`: Retrieves all clusters for a project
+- `atlas/getProjects`: Retrieves all projects from Atlas
+- `collections/reconcileClustersArray`: Reconciles local and Atlas cluster data
 
 *UI Functions:*
 - `ui/getClusterList`: Retrieves cluster data for the UI
@@ -296,6 +339,47 @@ atlas clusters tags add <clusterName> --projectId <projectId> \
   --tag key=automation:pause-schedule,value=days:1.2.3.4.5:hour:22:timezone:America-New_York
 ```
 
+## Advanced Configuration
+
+### Organization-Wide Setup
+```javascript
+// Set default schedule for ALL clusters in organization (disabled by default for safety)
+await setOrgWideSchedule(22, [0,1,2,3,4,5,6], "America/New_York", false);
+
+// Enable automation for specific project when ready
+await enableAutomationForProject(projectId);
+
+// Test org-wide setup
+await testScheduleTags("Hello world!", "", "org-setup");
+
+// Test project enablement
+await testScheduleTags("Hello world!", "", "enable-project");
+```
+
+### Custom Timezones
+```javascript
+// Asia/Tokyo schedule
+await setClusterScheduleTag(projectId, clusterName, 18, [1,2,3,4,5], "Asia/Tokyo");
+
+// Europe/London schedule  
+await setClusterScheduleTag(projectId, clusterName, 20, [0,6], "Europe/London");
+```
+
+### Weekend vs Weekday Schedules
+```javascript
+// Weekend morning shutdown
+await setClusterScheduleTag(projectId, "dev-cluster", 9, [0,6], "America/New_York");
+
+// Weekday evening shutdown
+await setClusterScheduleTag(projectId, "prod-cluster", 22, [1,2,3,4,5], "America/New_York");
+```
+
+### Activity Logging Setup (Optional)
+```javascript
+// Configure activity logging collection
+await getActivityLogsCollection(); // Sets up collection if needed
+```
+
 ## Tag Format Reference
 
 ### Schedule Tag Format
@@ -304,7 +388,13 @@ Key: automation:pause-schedule
 Value: days:1.2.3.4.5:hour:22:timezone:America-New_York
 ```
 
-**Components:**
+### Automation Control Tag Format
+```
+Key: automation:enabled
+Value: false (to disable) | true (to enable) | omit tag (default: enabled)
+```
+
+**Schedule Components:**
 - `days:` - Prefix for days of week section
 - `1.2.3.4.5` - Days of week (0=Sunday through 6=Saturday), dot-separated
 - `hour:` - Prefix for hour section  
@@ -317,6 +407,18 @@ Value: days:1.2.3.4.5:hour:22:timezone:America-New_York
 - `days:0.6:hour:9:timezone:America-New_York` - Weekends at 9 AM Eastern  
 - `days:1.3.5:hour:18:timezone:Europe-London` - Mon/Wed/Fri at 6 PM London time
 - `days:1.2.3.4.5:hour:22` - Weekdays at 10 PM (defaults to America/New_York)
+
+**Common Automation Control Scenarios:**
+```bash
+# Temporarily disable automation during maintenance
+automation:enabled = false
+
+# Production cluster - keep automation enabled (default)
+# (no automation:enabled tag needed)
+
+# Development cluster - enable automation  
+automation:enabled = true
+```
 
 ## Management & Monitoring
 
@@ -344,32 +446,15 @@ await getProjectsWithScheduledClusters();
 
 // Test all tag operations
 await testScheduleTags("Hello world!", "", "parse");
-```
 
-## Advanced Configuration
+// Check automation status
+await testScheduleTags("Hello world!", "", "status");
 
-### Custom Timezones
-```javascript
-// Asia/Tokyo schedule
-await setClusterScheduleTag(projectId, clusterName, 18, [1,2,3,4,5], "Asia/Tokyo");
+// Disable automation temporarily
+await testScheduleTags("Hello world!", "", "disable");
 
-// Europe/London schedule  
-await setClusterScheduleTag(projectId, clusterName, 20, [0,6], "Europe/London");
-```
-
-### Weekend vs Weekday Schedules
-```javascript
-// Weekend morning shutdown
-await setClusterScheduleTag(projectId, "dev-cluster", 9, [0,6], "America/New_York");
-
-// Weekday evening shutdown
-await setClusterScheduleTag(projectId, "prod-cluster", 22, [1,2,3,4,5], "America/New_York");
-```
-
-### Activity Logging Setup (Optional)
-```javascript
-// Configure activity logging collection
-await getActivityLogsCollection(); // Sets up collection if needed
+// Re-enable automation
+await testScheduleTags("Hello world!", "", "enable");
 ```
 
 ## Cost Optimization Examples

@@ -14,7 +14,7 @@ exports = async function (changeEvent) {
   try {
     // Using your specific utility function to get the activity_logs collection handle
     activityLogsCollection = await context.functions.execute(
-      "utility/getActivityLogsCollection",
+      "collections/getActivityLogsCollection",
     );
   } catch (error) {
     console.error(

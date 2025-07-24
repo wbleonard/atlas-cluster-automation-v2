@@ -26,7 +26,7 @@ exports = async function(projectId, clusterName, tags) {
     console.log(`updateClusterTags: Updating tags for cluster ${clusterName} in project ${projectId}`);
     
     // First get current cluster state to preserve existing configuration
-    const currentCluster = await context.functions.execute("utility/getProjectCluster", projectId, clusterName);
+    const currentCluster = await context.functions.execute("atlas/getProjectCluster", projectId, clusterName);
     
     if (!currentCluster) {
       throw new Error(`Cluster ${clusterName} not found in project ${projectId}`);

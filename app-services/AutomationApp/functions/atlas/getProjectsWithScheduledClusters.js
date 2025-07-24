@@ -7,7 +7,7 @@ exports = async function() {
     console.log("getProjectsWithScheduledClusters: Fetching all projects from Atlas");
     
     // Use our existing utility function to fetch all projects
-    const projects = await context.functions.execute("utility/getProjects");
+    const projects = await context.functions.execute("atlas/getProjects");
     const projectsWithScheduledClusters = [];
 
     console.log(`getProjectsWithScheduledClusters: Found ${projects.length} projects. Checking for scheduled clusters...`);
@@ -19,21 +19,29 @@ exports = async function() {
       
       try {
         // Use our existing utility function to fetch clusters for this project
-        const clusters = await context.functions.execute("utility/getProjectClusters", projectId);
+        const clusters = await context.functions.execute("atlas/getProjectClusters", projectId);
         const scheduledClusters = [];
 
         // Check each cluster for automation tags
         for (const cluster of clusters) {
           const scheduleTag = cluster.tags?.find(tag => tag.key === 'automation:pause-schedule');
+          const enabledTag = cluster.tags?.find(tag => tag.key === 'automation:enabled');
           
           if (scheduleTag) {
+            // Check if automation is explicitly disabled
+            if (enabledTag && enabledTag.value.toLowerCase() === 'false') {
+              console.log(`getProjectsWithScheduledClusters: Automation disabled for cluster ${cluster.name} in project ${projectName} (automation:enabled=false)`);
+              continue; // Skip this cluster
+            }
+            
             try {
               // Parse the schedule using our utility function
-              const schedule = await context.functions.execute("utility/parseScheduleTag", scheduleTag.value);
+              const schedule = await context.functions.execute("tags/parseScheduleTag", scheduleTag.value);
               
               scheduledClusters.push({
                 name: cluster.name,
                 paused: cluster.paused || false,
+                automationEnabled: enabledTag ? enabledTag.value.toLowerCase() !== 'false' : true, // Default to enabled
                 ...schedule, // Add pauseHour, pauseDaysOfWeek, timezone
                 // Keep additional cluster info that might be useful
                 instanceSize: cluster.providerSettings?.instanceSizeName,
@@ -41,7 +49,7 @@ exports = async function() {
                 createDate: cluster.createDate
               });
               
-              console.log(`getProjectsWithScheduledClusters: Found scheduled cluster ${cluster.name} in project ${projectName}`);
+              console.log(`getProjectsWithScheduledClusters: Found scheduled cluster ${cluster.name} in project ${projectName} (automation: ${enabledTag ? enabledTag.value : 'enabled by default'})`);
             } catch (parseError) {
               console.error(`getProjectsWithScheduledClusters: Invalid schedule tag for cluster ${cluster.name} in project ${projectName}: ${parseError.message}`);
               // Skip this cluster but continue processing others

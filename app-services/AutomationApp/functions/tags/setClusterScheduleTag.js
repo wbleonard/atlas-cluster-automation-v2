@@ -48,7 +48,7 @@ exports = async function(projectId, clusterName, pauseHour, pauseDaysOfWeek, tim
     console.log(`setClusterScheduleTag: Setting schedule tag for cluster ${clusterName} in project ${projectId}: ${scheduleValue}`);
 
     // Get current cluster configuration using existing utility
-    const clusterData = await context.functions.execute("utility/getProjectCluster", projectId, clusterName);
+    const clusterData = await context.functions.execute("atlas/getProjectCluster", projectId, clusterName);
     
     if (!clusterData) {
       throw new Error(`Cluster ${clusterName} not found in project ${projectId}`);
@@ -66,7 +66,7 @@ exports = async function(projectId, clusterName, pauseHour, pauseDaysOfWeek, tim
     });
 
     // Update the cluster with the new tags using existing utility
-    await context.functions.execute("utility/updateClusterTags", projectId, clusterName, tags);
+    await context.functions.execute("tags/updateClusterTags", projectId, clusterName, tags);
 
     console.log(`setClusterScheduleTag: Successfully set schedule tag for cluster ${clusterName}`);
     return {
