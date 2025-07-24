@@ -1,5 +1,5 @@
 {
-    "name": "enforcePauseScheduleTrigger",
+    "name": "processScheduledClusterOperationsTrigger",
     "type": "SCHEDULED",
     "disabled": false,
     "config": {

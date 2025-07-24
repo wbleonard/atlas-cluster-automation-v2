@@ -7,14 +7,20 @@ exports = async function() {
   console.log("🔄 Starting cluster status sync (simplified tag-based approach)...");
   
   try {
-    // Use the new refreshClusterStatus function to update reporting data
-    const result = await context.functions.execute("collections/refreshClusterStatus");
+    // Update detailed cluster status data for reporting
+    console.log("📊 Refreshing detailed cluster status...");
+    const detailedResult = await context.functions.execute("collections/refreshClusterStatus");
+    
+    // Update dashboard summary data
+    console.log("📈 Refreshing dashboard summary data...");
+    const dashboardResult = await context.functions.execute("collections/refreshDashboardData");
     
     console.log("✅ Cluster status sync completed successfully");
     return {
       status: "success", 
       message: "Cluster status sync completed using tag-based approach",
-      details: result
+      detailedUpdate: detailedResult,
+      dashboardUpdate: dashboardResult
     };
     
   } catch (error) {

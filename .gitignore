@@ -40,5 +40,4 @@ coverage/
 *.tgz
 
 # Project specific
-CONVERSATION_HISTORY.md
 
