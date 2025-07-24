@@ -27,6 +27,7 @@ Contains individual cluster documents with:
   // Specific organizational tags (extracted for easy querying)
   ownedBy: "team-name",
   supportedBy: "support-team",
+  projectStatus: "active",
   
   // Human-readable schedule fields
   pauseDaysOfWeekDisplay: "Mon, Tue, Wed, Thu, Fri",
@@ -176,6 +177,15 @@ Create metric cards using the dashboard summary document:
 - **Title:** "Clusters by Support Team"
 - **Sort:** Descending by count
 
+#### Project Status Overview
+- **Chart Type:** Donut Chart
+- **Data Source:** `cluster_status` collection
+- **Filter:** `{_id: {$ne: "dashboard_summary"}, projectStatus: {$ne: null}}`
+- **Category:** `projectStatus`
+- **Value:** Count
+- **Title:** "Clusters by Project Status"
+- **Colors:** Green for "active", Orange for "maintenance", Red for "deprecated", Gray for "sunset"
+
 ### Step 6: Activity Timeline
 
 #### Recent Activity
@@ -229,6 +239,56 @@ For more complex charts, use these aggregation pipelines:
   },
   { $group: { _id: "$scheduleHour", count: { $sum: 1 } } },
   { $sort: { _id: 1 } }
+]
+```
+
+### Project Status with Ownership Analysis
+```javascript
+[
+  { $match: { 
+      _id: { $ne: "dashboard_summary" },
+      projectStatus: { $ne: null },
+      ownedBy: { $ne: null }
+    }
+  },
+  { $group: {
+      _id: { status: "$projectStatus", owner: "$ownedBy" },
+      count: { $sum: 1 },
+      clusters: { $push: "$name" }
+    }
+  },
+  { $sort: { "_id.status": 1, "count": -1 } }
+]
+```
+
+### Deprecated/Sunset Projects Analysis
+```javascript
+[
+  { $match: { 
+      _id: { $ne: "dashboard_summary" },
+      projectStatus: { $in: ["deprecated", "sunset", "maintenance"] }
+    }
+  },
+  { $group: {
+      _id: { 
+        project: "$projectName",
+        status: "$projectStatus",
+        owner: "$ownedBy"
+      },
+      clusterCount: { $sum: 1 },
+      totalClusters: { $push: "$name" },
+      pausedClusters: { 
+        $sum: { $cond: [{ $eq: ["$paused", true] }, 1, 0] }
+      }
+    }
+  },
+  { $addFields: {
+      costSavingsOpportunity: {
+        $subtract: ["$clusterCount", "$pausedClusters"]
+      }
+    }
+  },
+  { $sort: { "costSavingsOpportunity": -1 } }
 ]
 ```
 

@@ -126,6 +126,7 @@ exports = async function(projectId = null, debugMode = false) {
           // Extract specific organizational tags
           const ownedByTag = cluster.tags?.find(tag => tag.key === 'OWNED_BY');
           const supportedByTag = cluster.tags?.find(tag => tag.key === 'SUPPORTED_BY');
+          const projectStatusTag = cluster.tags?.find(tag => tag.key === 'PROJECT_STATUS');
 
           // Create status document
           const statusDoc = {
@@ -145,6 +146,7 @@ exports = async function(projectId = null, debugMode = false) {
             // Tag-based metadata
             ownedBy: ownedByTag?.value || null,
             supportedBy: supportedByTag?.value || null,
+            projectStatus: projectStatusTag?.value || null,
             
             // Schedule/automation data from tags
             ...scheduleData,

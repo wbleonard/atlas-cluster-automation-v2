@@ -74,6 +74,7 @@ exports = async function() {
         // Prepare status document for collection
         const ownedByTag = cluster.tags?.find(tag => tag.key === 'OWNED_BY');
         const supportedByTag = cluster.tags?.find(tag => tag.key === 'SUPPORTED_BY');
+        const projectStatusTag = cluster.tags?.find(tag => tag.key === 'PROJECT_STATUS');
         
         clusterStatusUpdates.push({
           updateOne: {
@@ -93,6 +94,7 @@ exports = async function() {
                 tags: cluster.tags,
                 ownedBy: ownedByTag?.value || null,
                 supportedBy: supportedByTag?.value || null,
+                projectStatus: projectStatusTag?.value || null,
                 lastRefreshed: refreshTimestamp,
                 // Add human-readable schedule fields
                 ...scheduleData
