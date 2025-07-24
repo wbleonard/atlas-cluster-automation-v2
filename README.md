@@ -275,10 +275,6 @@ This project represents a **serverless, infrastructure-free approach** to cluste
 - `collections/getClusterOpsCollection`: Legacy collection access (deprecated)
 - `collections/reconcileClustersArray`: Legacy reconciliation utility (deprecated)
 
-*UI Functions:*
-- `ui/getClusterList`: Retrieves cluster data for the UI
-- `ui/updateClusterMetadata`: Updates cluster metadata from the UI
-
 **Triggers:**
 - `enforcePauseScheduleTrigger`: Scheduled trigger that runs hourly to process **tag-based** cluster schedules by calling `trigger/processScheduledClusterOperations`
 - `logClusterAutomationChangeTrigger`: Optional database trigger for activity logging (if using audit collection)
@@ -526,14 +522,3 @@ Please feel free to submit a Pull Request for improvements to the automation log
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
-
----
-
-## Legacy Web UI (Deprecated)
-
-The `public/`, `models/`, and `server.js` files contain a legacy web-based dashboard that is no longer recommended due to:
-- Security and maintenance overhead
-- Redundancy with Atlas UI integration  
-- Infrastructure requirements
-
-The tag-based serverless approach is now the recommended implementation.

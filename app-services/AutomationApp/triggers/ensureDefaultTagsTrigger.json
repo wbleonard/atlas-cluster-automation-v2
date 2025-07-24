@@ -1,0 +1,10 @@
+{
+  "name": "ensureDefaultTagsTrigger",
+  "type": "SCHEDULED",
+  "config": {
+    "schedule": "0 0 * * 1",
+    "skip_catchup_events": false
+  },
+  "function_name": "ensureDefaultTagsScheduled",
+  "disabled": false
+}
