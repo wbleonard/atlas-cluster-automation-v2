@@ -111,26 +111,27 @@ Create metric cards using the `dashboard_summary` collection:
 ### Step 3: Status Distribution Charts
 
 
+
 #### Cluster Status Donut Chart
 - **Chart Type:** Donut Chart
 - **Data Source:** `cluster_status` collection
-- **Category:** `paused` 
+- **Arc:** `paused` (set as the Arc field)
 - **Value:** Count of documents
 - **Title:** "Cluster Status Distribution"
 - **Labels:** Map `true → "Paused"`, `false → "Active"`
 
 
 #### Instance Size Distribution
-- **Chart Type:** Bar Chart
+- **Chart Type:** Grouped Bar Chart
 - **Data Source:** `cluster_status` collection  
 - **X-Axis:** `instanceSize`
-- **Y-Axis:** Count of documents
+- **Aggregate:** COUNT BY VALUE
 - **Title:** "Clusters by Instance Size"
 - **Sort:** Descending by count
 
 
 #### Projects Overview
-- **Chart Type:** Bar Chart
+- **Chart Type:** Grouped Bar Chart
 - **Data Source:** `cluster_status` collection
 - **X-Axis:** `projectName`
 - **Y-Axis:** Count of documents  
@@ -140,37 +141,41 @@ Create metric cards using the `dashboard_summary` collection:
 ### Step 4: Automation Analytics
 
 
+
 #### Automation Adoption
 - **Chart Type:** Donut Chart
 - **Data Source:** `cluster_status` collection
-- **Category:** `automationEnabled`
+- **Label:** `automationEnabled` 
+- **Arc:** `automationEnabled` 
 - **Value:** Count
 - **Title:** "Automation Adoption"
-- **Labels:** Map `true → "Automated"`, `false → "Manual"`
+
 
 
 #### Scheduled vs Manual Clusters
-- **Chart Type:** Stacked Bar Chart
-- **Data Source:** `cluster_status` collection
-- **X-Axis:** `projectName`
-- **Y-Axis:** Count
-- **Series:** `automationEnabled`
-- **Title:** "Automation Status by Project"
+**Chart Type:** Stacked Bar Chart
+**Data Source:** `cluster_status` collection
+**X-Axis:** `projectName`
+**Y-Axis:** `automationEnabled` (shows count per automation status)
+**+Category (Series):** `automationEnabled` (label as "Automated" and "Manual")
+**Title:** "Automated vs Manual Clusters by Project"
+**Note:** Set both Y-Axis and +Category to `automationEnabled` to show the count of clusters by automation status (Automated/Manual) for each project.
 
 ### Step 5: Ownership Analytics
+
 
 
 #### Ownership Distribution
 - **Chart Type:** Donut Chart
 - **Data Source:** `cluster_status` collection
 - **Filter:** `{ownedBy: {$ne: null}}`
-- **Category:** `ownedBy`
+- **Arc:** `ownedBy` (set as the Arc field)
 - **Value:** Count
 - **Title:** "Clusters by Owner"
 
 
 #### Support Team Distribution  
-- **Chart Type:** Bar Chart
+- **Chart Type:** Colored Bar Chart
 - **Data Source:** `cluster_status` collection
 - **Filter:** `{supportedBy: {$ne: null}}`
 - **X-Axis:** `supportedBy`
@@ -179,11 +184,12 @@ Create metric cards using the `dashboard_summary` collection:
 - **Sort:** Descending by count
 
 
+
 #### Project Status Overview
 - **Chart Type:** Donut Chart
 - **Data Source:** `cluster_status` collection
 - **Filter:** `{projectStatus: {$ne: null}}`
-- **Category:** `projectStatus`
+- **Arc:** `projectStatus` (set as the Arc field)
 - **Value:** Count
 - **Title:** "Clusters by Project Status"
 - **Colors:** Green for "active", Orange for "maintenance", Red for "deprecated", Gray for "sunset"
@@ -199,10 +205,11 @@ Create metric cards using the `dashboard_summary` collection:
 - **Title:** "Daily Automation Activity"
 - **Time Range:** Last 30 days
 
+
 #### Success Rate
 - **Chart Type:** Donut Chart  
 - **Data Source:** `activity_logs` collection
-- **Category:** `status`
+- **Arc:** `status` (set as the Arc field)
 - **Value:** Count
 - **Title:** "Operation Success Rate"
 - **Colors:** Green for SUCCESS, Red for FAILED/ERROR
