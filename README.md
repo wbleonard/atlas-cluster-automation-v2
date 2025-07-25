@@ -53,10 +53,13 @@ If audit trails are needed, activity logs can be stored in any MongoDB collectio
 
 ### 1. Schedule Configuration (Multiple Options)
 
+
 **Option A: Direct in Atlas UI**
 - Navigate to your cluster → Configuration → Tags
 - Add tag: `automation:pause-schedule` = `days:1.2.3.4.5:hour:22:timezone:America-New_York`
 - Optionally add: `automation:enabled` = `false` (to temporarily disable automation)
+
+![Manage Tags in Atlas UI](images/manage-tags.png)
 
 **Option B: Using Atlas CLI**
 ```bash
