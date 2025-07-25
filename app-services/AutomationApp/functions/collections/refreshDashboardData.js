@@ -21,9 +21,6 @@ exports = async function() {
       };
     }
 
-    // Update cluster status collection for dashboard
-    const clusterStatusCollection = await context.functions.execute("collections/getClusterStatusCollection");
-    
     // Calculate totals
     let totalClusters = 0;
     let pausedClusters = 0;
@@ -31,84 +28,20 @@ exports = async function() {
     let automationEnabledClusters = 0;
 
     const refreshTimestamp = new Date();
-    const clusterStatusUpdates = [];
 
     for (const project of projectsWithClusters) {
       for (const cluster of project.clusters) {
         totalClusters++;
-        
         if (cluster.paused) {
           pausedClusters++;
         } else {
           activeClusters++;
         }
-
         if (cluster.automationEnabled) {
           automationEnabledClusters++;
         }
-
-        // Parse schedule for human-readable fields
-        let scheduleData = {};
-        if (cluster.schedule) {
-          try {
-            const parsedSchedule = await context.functions.execute("tags/parseScheduleTag", cluster.schedule);
-            scheduleData = {
-              pauseHour: parsedSchedule.pauseHour,
-              pauseDaysOfWeek: parsedSchedule.pauseDaysOfWeek,
-              pauseDaysOfWeekDisplay: formatDaysOfWeek(parsedSchedule.pauseDaysOfWeek),
-              timezone: parsedSchedule.timezone,
-              scheduleDisplay: formatScheduleDisplay(parsedSchedule)
-            };
-          } catch (error) {
-            console.warn(`Failed to parse schedule for ${cluster.name}: ${error.message}`);
-            scheduleData = {
-              pauseHour: null,
-              pauseDaysOfWeek: [],
-              pauseDaysOfWeekDisplay: null,
-              timezone: null,
-              scheduleDisplay: null
-            };
-          }
-        }
-
-        // Prepare status document for collection
-        const ownedByTag = cluster.tags?.find(tag => tag.key === 'OWNED_BY');
-        const supportedByTag = cluster.tags?.find(tag => tag.key === 'SUPPORTED_BY');
-        const projectStatusTag = cluster.tags?.find(tag => tag.key === 'PROJECT_STATUS');
-        
-        clusterStatusUpdates.push({
-          updateOne: {
-            filter: { projectId: project.projectId, clusterName: cluster.name },
-            update: {
-              $set: {
-                projectId: project.projectId,
-                projectName: project.projectName,
-                clusterName: cluster.name,
-                stateName: cluster.stateName,
-                paused: cluster.paused,
-                automationEnabled: cluster.automationEnabled,
-                schedule: cluster.schedule,
-                instanceSize: cluster.instanceSize,
-                mongoOwner: cluster.mongoOwner,
-                description: cluster.description,
-                tags: cluster.tags,
-                ownedBy: ownedByTag?.value || null,
-                supportedBy: supportedByTag?.value || null,
-                projectStatus: projectStatusTag?.value || null,
-                lastRefreshed: refreshTimestamp,
-                // Add human-readable schedule fields
-                ...scheduleData
-              }
-            },
-            upsert: true
-          }
-        });
+        // (No longer writing per-cluster status for dashboard)
       }
-    }
-
-    // Bulk update cluster status collection
-    if (clusterStatusUpdates.length > 0) {
-      await clusterStatusCollection.bulkWrite(clusterStatusUpdates);
     }
 
     // Update summary statistics in separate collection

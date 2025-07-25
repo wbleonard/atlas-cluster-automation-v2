@@ -19,10 +19,6 @@ exports = async function(projectId = null, debugMode = false) {
       throw new Error("Failed to get cluster status collection");
     }
 
-    // Always clean up duplicates before refresh to ensure data integrity
-    console.log("🧹 Cleaning up any duplicate entries...");
-    await cleanupDuplicateEntries(statusCollection, debugMode);
-
     // Get projects to process
     let projects;
     if (projectId) {
@@ -35,6 +31,8 @@ exports = async function(projectId = null, debugMode = false) {
       console.log(`🌐 Processing all ${projects.length} projects`);
     }
 
+    // Collect all cluster status data before updating database
+    const allClusterStatusDocs = [];
     let totalClustersProcessed = 0;
 
     for (const project of projects) {
@@ -57,9 +55,11 @@ exports = async function(projectId = null, debugMode = false) {
         // Build cluster status data
         const clusterStatusList = [];
         
+
         for (const cluster of atlasClusters) {
-          if (!cluster || !cluster.name) {
-            console.warn("⚠️ Skipping cluster without name");
+          // Harden: skip if cluster.name is missing, empty, or not a string
+          if (!cluster || typeof cluster.name !== 'string' || !cluster.name.trim()) {
+            console.warn("⚠️ Skipping cluster with missing or invalid name", cluster);
             continue;
           }
 
@@ -87,12 +87,12 @@ exports = async function(projectId = null, debugMode = false) {
               scheduleData = {
                 hasSchedule: false,
                 automationEnabled: false,
-                pauseHour: null,
-                pauseDaysOfWeek: [],
-                pauseDaysOfWeekDisplay: null,
+                pauseHour: '',
+                pauseDaysOfWeek: '',
+                pauseDaysOfWeekDisplay: '',
                 timezone: '',
                 scheduleTag: null,
-                scheduleDisplay: null
+                scheduleDisplay: ''
               };
             }
           } catch (error) {
@@ -102,8 +102,8 @@ exports = async function(projectId = null, debugMode = false) {
             scheduleData = {
               hasSchedule: false,
               automationEnabled: false,
-              pauseHour: null,
-              pauseDaysOfWeek: [],
+              pauseHour: '',
+              pauseDaysOfWeek: '',
               timezone: '',
               scheduleTag: null
             };
@@ -137,7 +137,6 @@ exports = async function(projectId = null, debugMode = false) {
             name: cluster.name,
             projectId: currentProjectId,
             projectName: projectName,
-            
             // Atlas metadata
             instanceSize: cluster.providerSettings?.instanceSizeName || '',
             mongoDBVersion: mongoVersion,
@@ -146,47 +145,54 @@ exports = async function(projectId = null, debugMode = false) {
             ageInDays: ageInDays,
             autoscaling: Boolean(cluster.autoScaling?.compute?.enabled),
             status: cluster.paused ? "PAUSED" : "ACTIVE",
-            
-            // Tag-based metadata
-            ownedBy: ownedByTag?.value || null,
-            supportedBy: supportedByTag?.value || null,
-            projectStatus: projectStatusTag?.value || null,
-            
+            // Tag-based metadata (empty strings instead of null for Charts compatibility)
+            ownedBy: ownedByTag?.value || "",
+            supportedBy: supportedByTag?.value || "",
+            projectStatus: projectStatusTag?.value || "",
             // Schedule/automation data from tags
             ...scheduleData,
-            
             // Reporting metadata
             lastUpdated: new Date(),
             dataSource: "atlas-api-tags"
           };
 
+          if (debugMode) {
+            console.log("📄 Prepared statusDoc for insert:", JSON.stringify(statusDoc));
+          }
+
           clusterStatusList.push(statusDoc);
+          totalClustersProcessed++;
         }
 
-        // Update status collection for this project
-        if (clusterStatusList.length > 0) {
-          // Use upsert operations to avoid race conditions
-          const operations = clusterStatusList.map(statusDoc => ({
-            updateOne: {
-              filter: { 
-                projectId: currentProjectId,
-                name: statusDoc.name 
-              },
-              update: { $set: statusDoc },
-              upsert: true
-            }
-          }));
-          
-          await statusCollection.bulkWrite(operations);
-          
-          totalClustersProcessed += clusterStatusList.length;
-          console.log(`✅ Updated status for ${clusterStatusList.length} clusters in ${projectName}`);
+        // Add this project's clusters to the master list
+        allClusterStatusDocs.push(...clusterStatusList);
+        
+        if (debugMode) {
+          console.log(`✅ Collected status for ${clusterStatusList.length} clusters in ${projectName}`);
         }
 
       } catch (projectError) {
         console.error(`❌ Error processing project ${projectName}: ${projectError.message}`);
         continue;
       }
+    }
+
+    // Atomic rebuild: Clear existing data and insert all new data
+    console.log(`🔄 Replacing collection with ${allClusterStatusDocs.length} cluster status documents...`);
+    if (debugMode) {
+      for (const doc of allClusterStatusDocs) {
+        console.log("📝 Will insert:", JSON.stringify(doc));
+      }
+      console.log(`🧮 Final document count to insert: ${allClusterStatusDocs.length}`);
+    }
+    // Only delete for the current project if projectId is specified
+    if (projectId) {
+      await statusCollection.deleteMany({ projectId });
+    } else {
+      await statusCollection.deleteMany({});
+    }
+    if (allClusterStatusDocs.length > 0) {
+      await statusCollection.insertMany(allClusterStatusDocs);
     }
 
     const result = {
@@ -233,50 +239,4 @@ function formatScheduleDisplay(parsedSchedule) {
   const timezoneDisplay = timezone ? ` ${timezone}` : '';
   
   return `${daysDisplay} at ${hourDisplay}${timezoneDisplay}`;
-}
-
-// Helper function to clean up duplicate entries
-async function cleanupDuplicateEntries(statusCollection, debugMode = false) {
-  try {
-    // Find duplicates by projectId + name combination
-    const duplicates = await statusCollection.aggregate([
-      {
-        $group: {
-          _id: { projectId: "$projectId", name: "$name" },
-          count: { $sum: 1 },
-          docs: { $push: { _id: "$_id", lastUpdated: "$lastUpdated" } }
-        }
-      },
-      {
-        $match: { count: { $gt: 1 } }
-      }
-    ]).toArray();
-
-    if (duplicates.length === 0) {
-      console.log("✅ No duplicates found");
-      return;
-    }
-
-    console.log(`🧹 Found ${duplicates.length} sets of duplicates, cleaning up...`);
-
-    for (const duplicate of duplicates) {
-      // Sort by lastUpdated descending, keep the most recent
-      const sortedDocs = duplicate.docs.sort((a, b) => b.lastUpdated - a.lastUpdated);
-      const docsToDelete = sortedDocs.slice(1); // Remove all but the first (most recent)
-
-      if (debugMode) {
-        console.log(`🗑️ Removing ${docsToDelete.length} duplicates for ${duplicate._id.projectId}/${duplicate._id.name}`);
-      }
-
-      // Delete the older duplicates
-      const idsToDelete = docsToDelete.map(doc => doc._id);
-      await statusCollection.deleteMany({ _id: { $in: idsToDelete } });
-    }
-
-    console.log(`✅ Cleaned up duplicates for ${duplicates.length} clusters`);
-
-  } catch (error) {
-    console.error("❌ Error cleaning up duplicates:", error.message);
-    throw error;
-  }
 }
