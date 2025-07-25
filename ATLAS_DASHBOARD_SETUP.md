@@ -111,8 +111,8 @@ Create metric cards using the `dashboard_summary` collection:
 ### Step 3: Status Distribution Charts
 
 
-#### Cluster Status Pie Chart
-- **Chart Type:** Pie Chart
+#### Cluster Status Donut Chart
+- **Chart Type:** Donut Chart
 - **Data Source:** `cluster_status` collection
 - **Category:** `paused` 
 - **Value:** Count of documents
@@ -141,7 +141,7 @@ Create metric cards using the `dashboard_summary` collection:
 
 
 #### Automation Adoption
-- **Chart Type:** Pie Chart
+- **Chart Type:** Donut Chart
 - **Data Source:** `cluster_status` collection
 - **Category:** `automationEnabled`
 - **Value:** Count
@@ -161,7 +161,7 @@ Create metric cards using the `dashboard_summary` collection:
 
 
 #### Ownership Distribution
-- **Chart Type:** Pie Chart
+- **Chart Type:** Donut Chart
 - **Data Source:** `cluster_status` collection
 - **Filter:** `{ownedBy: {$ne: null}}`
 - **Category:** `ownedBy`
