@@ -37,12 +37,14 @@ Contains individual cluster documents with:
 }
 ```
 
-### 2. Dashboard Summary Document
-Special document with `_id: "dashboard_summary"`:
+
+### 2. `dashboard_summary` Collection
+Contains a single document with overall metrics:
 ```javascript
 {
   _id: "dashboard_summary",
-  totalProjects: 5,
+  totalAtlasProjects: 5,
+  totalProjectsWithScheduledClusters: 3,
   totalClusters: 23,
   pausedClusters: 8,
   activeClusters: 15,
@@ -76,63 +78,60 @@ Activity tracking with:
 
 ### Step 2: Overview Metrics Cards
 
-Create metric cards using the dashboard summary document:
+
+Create metric cards using the `dashboard_summary` collection:
 
 #### Total Clusters Card
 - **Chart Type:** Number
-- **Data Source:** `cluster_status` collection  
-- **Filter:** `_id: "dashboard_summary"`
+- **Data Source:** `dashboard_summary` collection
 - **Value:** `totalClusters`
 - **Title:** "Total Clusters"
 
 #### Active Clusters Card
 - **Chart Type:** Number
-- **Data Source:** `cluster_status` collection
-- **Filter:** `_id: "dashboard_summary"`
+- **Data Source:** `dashboard_summary` collection
 - **Value:** `activeClusters` 
 - **Title:** "Active Clusters"
 - **Color:** Green
 
 #### Paused Clusters Card
 - **Chart Type:** Number
-- **Data Source:** `cluster_status` collection
-- **Filter:** `_id: "dashboard_summary"`
+- **Data Source:** `dashboard_summary` collection
 - **Value:** `pausedClusters`
 - **Title:** "Paused Clusters"
 - **Color:** Orange
 
 #### Automation Enabled Card
 - **Chart Type:** Number
-- **Data Source:** `cluster_status` collection
-- **Filter:** `_id: "dashboard_summary"`
+- **Data Source:** `dashboard_summary` collection
 - **Value:** `automationEnabledClusters`
 - **Title:** "Automated Clusters"
 - **Color:** Blue
 
 ### Step 3: Status Distribution Charts
 
+
 #### Cluster Status Pie Chart
 - **Chart Type:** Pie Chart
 - **Data Source:** `cluster_status` collection
-- **Filter:** Exclude dashboard summary: `_id: {$ne: "dashboard_summary"}`
 - **Category:** `paused` 
 - **Value:** Count of documents
 - **Title:** "Cluster Status Distribution"
 - **Labels:** Map `true → "Paused"`, `false → "Active"`
 
+
 #### Instance Size Distribution
 - **Chart Type:** Bar Chart
 - **Data Source:** `cluster_status` collection  
-- **Filter:** Exclude summary document
 - **X-Axis:** `instanceSize`
 - **Y-Axis:** Count of documents
 - **Title:** "Clusters by Instance Size"
 - **Sort:** Descending by count
 
+
 #### Projects Overview
 - **Chart Type:** Bar Chart
 - **Data Source:** `cluster_status` collection
-- **Filter:** Exclude summary document
 - **X-Axis:** `projectName`
 - **Y-Axis:** Count of documents  
 - **Title:** "Clusters per Project"
@@ -140,19 +139,19 @@ Create metric cards using the dashboard summary document:
 
 ### Step 4: Automation Analytics
 
+
 #### Automation Adoption
 - **Chart Type:** Pie Chart
 - **Data Source:** `cluster_status` collection
-- **Filter:** Exclude summary document
 - **Category:** `automationEnabled`
 - **Value:** Count
 - **Title:** "Automation Adoption"
 - **Labels:** Map `true → "Automated"`, `false → "Manual"`
 
+
 #### Scheduled vs Manual Clusters
 - **Chart Type:** Stacked Bar Chart
 - **Data Source:** `cluster_status` collection
-- **Filter:** Exclude summary document
 - **X-Axis:** `projectName`
 - **Y-Axis:** Count
 - **Series:** `automationEnabled`
@@ -160,27 +159,30 @@ Create metric cards using the dashboard summary document:
 
 ### Step 5: Ownership Analytics
 
+
 #### Ownership Distribution
 - **Chart Type:** Pie Chart
 - **Data Source:** `cluster_status` collection
-- **Filter:** `{_id: {$ne: "dashboard_summary"}, ownedBy: {$ne: null}}`
+- **Filter:** `{ownedBy: {$ne: null}}`
 - **Category:** `ownedBy`
 - **Value:** Count
 - **Title:** "Clusters by Owner"
 
+
 #### Support Team Distribution  
 - **Chart Type:** Bar Chart
 - **Data Source:** `cluster_status` collection
-- **Filter:** `{_id: {$ne: "dashboard_summary"}, supportedBy: {$ne: null}}`
+- **Filter:** `{supportedBy: {$ne: null}}`
 - **X-Axis:** `supportedBy`
 - **Y-Axis:** Count
 - **Title:** "Clusters by Support Team"
 - **Sort:** Descending by count
 
+
 #### Project Status Overview
 - **Chart Type:** Donut Chart
 - **Data Source:** `cluster_status` collection
-- **Filter:** `{_id: {$ne: "dashboard_summary"}, projectStatus: {$ne: null}}`
+- **Filter:** `{projectStatus: {$ne: null}}`
 - **Category:** `projectStatus`
 - **Value:** Count
 - **Title:** "Clusters by Project Status"
