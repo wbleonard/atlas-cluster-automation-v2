@@ -8,47 +8,81 @@ exports = async function() {
   console.log("🔄 Refreshing dashboard data...");
   
   try {
-    // Get fresh cluster data from Atlas
-    const projectsWithClusters = await context.functions.execute("atlas/getProjectsWithScheduledClusters");
 
-    if (!projectsWithClusters || projectsWithClusters.length === 0) {
-      console.log("refreshDashboardData: No projects with scheduled clusters found");
+
+
+    // Get all Atlas projects
+    const allProjects = await context.functions.execute("atlas/getProjects");
+    const totalAtlasProjects = Array.isArray(allProjects) ? allProjects.length : 0;
+
+    if (!allProjects || allProjects.length === 0) {
+      console.log("refreshDashboardData: No Atlas projects found");
       return {
         status: "success",
-        message: "No scheduled clusters found",
-        projectCount: 0,
+        message: "No Atlas projects found",
+        totalAtlasProjects: 0,
+        totalProjectsWithScheduledClusters: 0,
         clusterCount: 0
       };
     }
 
-    // Calculate totals
+    // For each project, get clusters and compute stats
     let totalClusters = 0;
     let pausedClusters = 0;
     let activeClusters = 0;
     let automationEnabledClusters = 0;
+    let totalProjectsWithScheduledClusters = 0;
 
-    const refreshTimestamp = new Date();
+    for (const project of allProjects) {
+      let clusters = [];
+      try {
+        clusters = await context.functions.execute("atlas/getProjectClusters", project.id || project._id || project.projectId);
+      } catch (err) {
+        console.warn(`refreshDashboardData: Could not fetch clusters for project ${project.name || project.id || project._id}:`, err.message);
+        continue;
+      }
+      if (!Array.isArray(clusters) || clusters.length === 0) continue;
 
-    for (const project of projectsWithClusters) {
-      for (const cluster of project.clusters) {
+      let hasScheduledCluster = false;
+      for (const cluster of clusters) {
         totalClusters++;
         if (cluster.paused) {
           pausedClusters++;
         } else {
           activeClusters++;
         }
-        if (cluster.automationEnabled) {
-          automationEnabledClusters++;
+        // Check for schedule tag (e.g., automation:pause-schedule)
+        let hasPauseSchedule = false;
+        let isAutomationEnabled = true;
+        if (cluster.tags && Array.isArray(cluster.tags)) {
+          hasPauseSchedule = cluster.tags.some(tag => tag.key === "automation:pause-schedule");
+          const enabledTag = cluster.tags.find(tag => tag.key === "automation:enabled");
+          if (enabledTag && typeof enabledTag.value === "string" && enabledTag.value.trim().toLowerCase() === "false") {
+            isAutomationEnabled = false;
+          }
         }
-        // (No longer writing per-cluster status for dashboard)
+        if (hasPauseSchedule) {
+          hasScheduledCluster = true;
+          if (isAutomationEnabled) {
+            automationEnabledClusters++;
+          }
+        }
       }
+      if (hasScheduledCluster) totalProjectsWithScheduledClusters++;
     }
+
+
+
+    const refreshTimestamp = new Date();
+
+
 
     // Update summary statistics in separate collection
     const dashboardSummaryCollection = await context.functions.execute("collections/getDashboardSummaryCollection");
     const summaryStats = {
       _id: "dashboard_summary",
-      totalProjects: projectsWithClusters.length,
+      totalAtlasProjects: totalAtlasProjects,
+      totalProjectsWithScheduledClusters: totalProjectsWithScheduledClusters,
       totalClusters: totalClusters,
       pausedClusters: pausedClusters,
       activeClusters: activeClusters,
@@ -62,10 +96,12 @@ exports = async function() {
       { upsert: true }
     );
 
+
     const summary = {
       status: "success",
       message: "Dashboard data refreshed successfully",
-      projectCount: projectsWithClusters.length,
+      totalAtlasProjects: totalAtlasProjects,
+      totalProjectsWithScheduledClusters: totalProjectsWithScheduledClusters,
       clusterCount: totalClusters,
       stats: {
         paused: pausedClusters,
@@ -76,7 +112,8 @@ exports = async function() {
     };
 
     console.log(`✅ Dashboard refresh completed:`);
-    console.log(`   📊 Projects: ${summary.projectCount}`);
+    console.log(`   🗂️ Atlas projects scanned: ${totalAtlasProjects}`);
+    console.log(`   📊 Projects with scheduled clusters: ${totalProjectsWithScheduledClusters}`);
     console.log(`   🏭 Total clusters: ${summary.clusterCount}`);
     console.log(`   ⏸️ Paused: ${summary.stats.paused}`);
     console.log(`   ▶️ Active: ${summary.stats.active}`);
