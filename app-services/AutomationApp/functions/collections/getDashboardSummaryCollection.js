@@ -5,11 +5,20 @@
  */
 exports = async function() {
   try {
-    const db = context.services.get("mongodb-atlas").db(
-      await context.values.get("ClusterOpsDBName")
-    );
+    // Get the dashboard summary collection from the configured data source
+    const serviceName = await context.values.get("ServiceName");
+    const dbName = await context.values.get("ClusterOpsDBName");
+    const collectionName = "dashboard_summary";
     
-    return db.collection("dashboard_summary");
+    if (!serviceName || !dbName) {
+      console.error("getDashboardSummaryCollection: Missing required configuration values");
+      return null;
+    }
+
+    const db = context.services.get(serviceName).db(dbName);
+    console.log(`getDashboardSummaryCollection: Connected to collection ${collectionName} in database ${dbName}`);
+    
+    return db.collection(collectionName);
     
   } catch (error) {
     console.error("Error getting dashboard summary collection:", error.message);
