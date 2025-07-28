@@ -196,47 +196,6 @@ Create metric cards using the `dashboard_summary` collection:
 - **Title:** "MongoDB Version Distribution"
 - **Colors:** Blue gradient
 
-
-
-## Using Aggregation Pipelines in Atlas Charts
-
-When creating charts that need data transformation (like grouping, calculating, or filtering), you need to create **Charts Views** that apply aggregation pipelines to your collections:
-
-### General Steps:
-1. **Go to Atlas Charts** → Navigate to Data Sources section
-2. **Select your database and collection** (e.g., `clusterOps` → `cluster_status`)
-3. **Click "Charts View"** next to the collection's information
-4. **Name your Charts View** (e.g., "Cluster Age Distribution")
-5. **Add your aggregation pipeline** in the pipeline editor (must be an array)
-6. **Click "Test Pipeline"** to validate and preview results
-7. **Click "Save"** to create the Charts View
-8. **Create your chart** using the new Charts View as the data source
-
-### Important Notes:
-- **Charts Views** are separate data sources that pre-process your collection data
-- The **field names** in your chart configuration must match the **output** of your aggregation pipeline
-- Use **"Test Pipeline"** to see exactly what fields are available after transformation
-- Charts Views can be reused across multiple charts
-- Any user in your project can use Charts Views created by others
-
-## Advanced Aggregations
-
-Create Charts Views using these aggregation pipelines for more complex charts:
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ## Embedding Charts
 
 To embed charts in your web application:
