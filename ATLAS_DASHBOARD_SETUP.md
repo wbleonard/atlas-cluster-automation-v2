@@ -12,28 +12,35 @@ Your automation system populates these collections:
 Contains individual cluster documents with:
 ```javascript
 {
+  _id: ObjectId("..."),
+  name: "cluster-name",                    // Cluster name (NOT clusterName)
   projectId: "...",
   projectName: "...", 
-  clusterName: "...",
-  stateName: "IDLE|CREATING|UPDATING|DELETING|DELETED|REPAIRING",
-  paused: true/false,
-  automationEnabled: true/false,
-  schedule: "days:1.2.3.4.5:hour:22:timezone:America-New_York",
   instanceSize: "M10|M20|M30|...",
-  mongoOwner: "...",
-  description: "...",
-  tags: [...],
+  mongoDBVersion: "7|8",
+  paused: true/false,
+  createDate: "2025-04-23T16:19:17Z",     // ISO date string
+  ageInDays: 96,                          // Calculated age since creation
+  autoscaling: true/false,
+  status: "ACTIVE|PAUSED|...",            // Current cluster status
   
-  // Specific organizational tags (extracted for easy querying)
-  ownedBy: "team-name",
-  supportedBy: "support-team",
-  projectStatus: "active",
+  // Ownership and organizational fields
+  ownedBy: "user@company.com",
+  supportedBy: "support@company.com", 
+  projectStatus: "Testing|Production|...",
   
-  // Human-readable schedule fields
-  pauseDaysOfWeekDisplay: "Mon, Tue, Wed, Thu, Fri",
-  scheduleDisplay: "Mon, Tue, Wed, Thu, Fri at 22:00 America/New_York",
+  // Automation and scheduling
+  automationEnabled: true/false,
+  hasSchedule: true/false,
+  pauseHour: 22,                          // Hour of day to pause (0-23)
+  pauseDaysOfWeek: [0,1,2,3,4,5,6],      // Array of days (0=Sunday)
+  pauseDaysOfWeekDisplay: "Sun, Mon, Tue, Wed, Thu, Fri, Sat",
+  timezone: "America/New_York",
+  scheduleTag: "days:0.1.2.3.4.5.6:hour:22:timezone:America-New_York",
+  scheduleDisplay: "Sun, Mon, Tue, Wed, Thu, Fri, Sat at 22:00 America/New_York",
   
-  lastRefreshed: ISODate(...)
+  lastUpdated: ISODate(...),
+  dataSource: "atlas-api-tags"
 }
 ```
 
@@ -43,26 +50,35 @@ Contains a single document with overall metrics:
 ```javascript
 {
   _id: "dashboard_summary",
-  totalAtlasProjects: 5,
-  totalProjectsWithScheduledClusters: 3,
-  totalClusters: 23,
-  pausedClusters: 8,
-  activeClusters: 15,
-  automationEnabledClusters: 20,
-  lastRefreshed: ISODate(...)
+  totalAtlasProjects: 20,
+  totalProjectsWithScheduledClusters: 9,
+  totalClusters: 14,
+  pausedClusters: 2,
+  activeClusters: 12,
+  automationEnabledClusters: 2,
+  lastRefreshed: ISODate("2025-07-28T17:45:07.171Z")
 }
 ```
+*Note: These are live metrics from your actual database as of last refresh*
 
 ### 3. `activity_logs` Collection
 Activity tracking with:
 ```javascript
 {
-  timestamp: ISODate(...),
-  action: "CLUSTER_PAUSE|CLUSTER_RESUME|UI_METADATA_UPDATE|...",
+  _id: ObjectId("..."),
+  timestamp: ISODate("2025-05-28T14:45:01.724Z"),
+  eventType: "METADATA_UPDATE|CLUSTER_PAUSE|CLUSTER_RESUME|...",
+  actor: "SYSTEM_DB_TRIGGER|USER|SCHEDULED_TRIGGER|...",
   projectId: "...",
-  clusterName: "...",
+  clusterId: "..." || null,                    // null for project-level events
   status: "SUCCESS|FAILED|ERROR",
-  triggerSource: "SCHEDULED_TRIGGER|MANUAL_TRIGGER|..."
+  errorMessage: null || "error details",
+  details: {                                   // Event-specific details
+    fieldName: "clusters|updatedAt|...",
+    oldValue: {...},                           // Previous state
+    newValue: {...},                           // New state  
+    projectDocumentId: "..."                   // Related project document
+  }
 }
 ```
 
@@ -82,28 +98,28 @@ Activity tracking with:
 Create metric cards using the `dashboard_summary` collection:
 
 #### Total Clusters Card
-- **Chart Type:** Number
 - **Data Source:** `dashboard_summary` collection
+- **Chart Type:** Number
 - **Value:** `totalClusters`
 - **Title:** "Total Clusters"
 
 #### Active Clusters Card
-- **Chart Type:** Number
 - **Data Source:** `dashboard_summary` collection
+- **Chart Type:** Number
 - **Value:** `activeClusters` 
 - **Title:** "Active Clusters"
 - **Color:** Green
 
 #### Paused Clusters Card
-- **Chart Type:** Number
 - **Data Source:** `dashboard_summary` collection
+- **Chart Type:** Number
 - **Value:** `pausedClusters`
 - **Title:** "Paused Clusters"
 - **Color:** Orange
 
 #### Automation Enabled Card
-- **Chart Type:** Number
 - **Data Source:** `dashboard_summary` collection
+- **Chart Type:** Number
 - **Value:** `automationEnabledClusters`
 - **Title:** "Automated Clusters"
 - **Color:** Blue
@@ -113,8 +129,8 @@ Create metric cards using the `dashboard_summary` collection:
 
 
 #### Cluster Status Donut Chart
-- **Chart Type:** Donut Chart
 - **Data Source:** `cluster_status` collection
+- **Chart Type:** Donut Chart
 - **Arc:** `paused` (set as the Arc field)
 - **Value:** Count of documents
 - **Title:** "Cluster Status Distribution"
@@ -122,203 +138,104 @@ Create metric cards using the `dashboard_summary` collection:
 
 
 #### Instance Size Distribution
-- **Chart Type:** Grouped Bar Chart
-- **Data Source:** `cluster_status` collection  
+- **Data Source:** `cluster_status` collection
+- **Chart Type:** Colored Column Chart
 - **X-Axis:** `instanceSize`
-- **Aggregate:** COUNT BY VALUE
+- **Y-Axis:** Count of documents
 - **Title:** "Clusters by Instance Size"
 - **Sort:** Descending by count
+- **Colors:** Different color for each instance size (M10, M20, M30, etc.)
 
 
 #### Projects Overview
-- **Chart Type:** Grouped Bar Chart
 - **Data Source:** `cluster_status` collection
+- **Chart Type:** Colored Column Chart
 - **X-Axis:** `projectName`
 - **Y-Axis:** Count of documents  
 - **Title:** "Clusters per Project"
 - **Sort:** Descending by count
+- **Colors:** Different color for each project
 
 ### Step 4: Automation Analytics
 
 
 
-#### Automation Adoption
-- **Chart Type:** Donut Chart
-- **Data Source:** `cluster_status` collection
-- **Label:** `automationEnabled` 
-- **Arc:** `automationEnabled` 
-- **Value:** Count
-- **Title:** "Automation Adoption"
+
 
 
 
 #### Scheduled vs Manual Clusters
-**Chart Type:** Stacked Bar Chart
-**Data Source:** `cluster_status` collection
-**X-Axis:** `projectName`
-**Y-Axis:** `automationEnabled` (shows count per automation status)
-**+Category (Series):** `automationEnabled` (label as "Automated" and "Manual")
-**Title:** "Automated vs Manual Clusters by Project"
-**Note:** Set both Y-Axis and +Category to `automationEnabled` to show the count of clusters by automation status (Automated/Manual) for each project.
-
-### Step 5: Ownership Analytics
-
-
-
-#### Ownership Distribution
-- **Chart Type:** Donut Chart
 - **Data Source:** `cluster_status` collection
-- **Filter:** `{ownedBy: {$ne: null}}`
-- **Arc:** `ownedBy` (set as the Arc field)
-- **Value:** Count
-- **Title:** "Clusters by Owner"
-
-
-#### Support Team Distribution  
-- **Chart Type:** Colored Bar Chart
-- **Data Source:** `cluster_status` collection
-- **Filter:** `{supportedBy: {$ne: null}}`
-- **X-Axis:** `supportedBy`
-- **Y-Axis:** Count
-- **Title:** "Clusters by Support Team"
-- **Sort:** Descending by count
-
-
-
-#### Project Status Overview
-- **Chart Type:** Donut Chart
-- **Data Source:** `cluster_status` collection
-- **Filter:** `{projectStatus: {$ne: null}}`
-- **Arc:** `projectStatus` (set as the Arc field)
-- **Value:** Count
-- **Title:** "Clusters by Project Status"
-- **Colors:** Green for "active", Orange for "maintenance", Red for "deprecated", Gray for "sunset"
+- **Chart Type:** Stacked Column Chart
+-  **X-Axis:** `projectName`
+- **Y-Axis:** Count of documents
+- **+Category (Series):** `automationEnabled` (label as "Automated" and "Manual")
+- **Title:** "Automated vs Manual Clusters by Project"
+- **Colors:** Blue for "Automated", Gray for "Manual"
+- **Note:** This shows the breakdown of automated vs manual clusters for each project
 
 ### Step 6: Activity Timeline
 
 #### Recent Activity
-- **Chart Type:** Line Chart
 - **Data Source:** `activity_logs` collection
+- **Chart Type:** Line Chart
 - **X-Axis:** `timestamp` (grouped by day)
 - **Y-Axis:** Count of documents
-- **Series:** `action`
+- **Series:** `eventType` 
 - **Title:** "Daily Automation Activity"
-- **Time Range:** Last 30 days
 
-
-#### Success Rate
-- **Chart Type:** Donut Chart  
-- **Data Source:** `activity_logs` collection
-- **Arc:** `status` (set as the Arc field)
-- **Value:** Count
-- **Title:** "Operation Success Rate"
-- **Colors:** Green for SUCCESS, Red for FAILED/ERROR
 
 ### Step 7: Cost Optimization Insights
 
-#### Pause Schedule Analysis
-- **Chart Type:** Heatmap
+#### MongoDB Version Distribution 
 - **Data Source:** `cluster_status` collection
-- **Filter:** `schedule: {$exists: true, $ne: null}`
-- **X-Axis:** Extract hour from schedule using aggregation
-- **Y-Axis:** Extract days from schedule  
-- **Value:** Count of clusters
-- **Title:** "Most Common Pause Schedules"
+- **Chart Type:** Donut Chart
+- **Label:** `mongoDBVersion`
+- **Arc:** `mongoDBVersion`
+  - **Aggregate:** Count of documents
+- **Title:** "MongoDB Version Distribution"
+- **Colors:** Blue gradient
+
+
+
+## Using Aggregation Pipelines in Atlas Charts
+
+When creating charts that need data transformation (like grouping, calculating, or filtering), you need to create **Charts Views** that apply aggregation pipelines to your collections:
+
+### General Steps:
+1. **Go to Atlas Charts** → Navigate to Data Sources section
+2. **Select your database and collection** (e.g., `clusterOps` → `cluster_status`)
+3. **Click "Charts View"** next to the collection's information
+4. **Name your Charts View** (e.g., "Cluster Age Distribution")
+5. **Add your aggregation pipeline** in the pipeline editor (must be an array)
+6. **Click "Test Pipeline"** to validate and preview results
+7. **Click "Save"** to create the Charts View
+8. **Create your chart** using the new Charts View as the data source
+
+### Important Notes:
+- **Charts Views** are separate data sources that pre-process your collection data
+- The **field names** in your chart configuration must match the **output** of your aggregation pipeline
+- Use **"Test Pipeline"** to see exactly what fields are available after transformation
+- Charts Views can be reused across multiple charts
+- Any user in your project can use Charts Views created by others
 
 ## Advanced Aggregations
 
-For more complex charts, use these aggregation pipelines:
+Create Charts Views using these aggregation pipelines for more complex charts:
 
-### Pause Time Distribution
-```javascript
-[
-  { $match: { _id: { $ne: "dashboard_summary" }, schedule: { $exists: true } } },
-  { $addFields: {
-      scheduleHour: {
-        $toInt: {
-          $arrayElemAt: [
-            { $split: [
-              { $arrayElemAt: [{ $split: ["$schedule", ":hour:"] }, 1] }, 
-              ":timezone:"
-            ]}, 0
-          ]
-        }
-      }
-    }
-  },
-  { $group: { _id: "$scheduleHour", count: { $sum: 1 } } },
-  { $sort: { _id: 1 } }
-]
-```
 
-### Project Status with Ownership Analysis
-```javascript
-[
-  { $match: { 
-      _id: { $ne: "dashboard_summary" },
-      projectStatus: { $ne: null },
-      ownedBy: { $ne: null }
-    }
-  },
-  { $group: {
-      _id: { status: "$projectStatus", owner: "$ownedBy" },
-      count: { $sum: 1 },
-      clusters: { $push: "$name" }
-    }
-  },
-  { $sort: { "_id.status": 1, "count": -1 } }
-]
-```
 
-### Deprecated/Sunset Projects Analysis
-```javascript
-[
-  { $match: { 
-      _id: { $ne: "dashboard_summary" },
-      projectStatus: { $in: ["deprecated", "sunset", "maintenance"] }
-    }
-  },
-  { $group: {
-      _id: { 
-        project: "$projectName",
-        status: "$projectStatus",
-        owner: "$ownedBy"
-      },
-      clusterCount: { $sum: 1 },
-      totalClusters: { $push: "$name" },
-      pausedClusters: { 
-        $sum: { $cond: [{ $eq: ["$paused", true] }, 1, 0] }
-      }
-    }
-  },
-  { $addFields: {
-      costSavingsOpportunity: {
-        $subtract: ["$clusterCount", "$pausedClusters"]
-      }
-    }
-  },
-  { $sort: { "costSavingsOpportunity": -1 } }
-]
-```
 
-### Project Cost Savings Potential
-```javascript
-[
-  { $match: { _id: { $ne: "dashboard_summary" } } },
-  { $group: {
-      _id: "$projectName",
-      totalClusters: { $sum: 1 },
-      automatedClusters: { $sum: { $cond: ["$automationEnabled", 1, 0] } },
-      pausedClusters: { $sum: { $cond: ["$paused", 1, 0] } }
-    }
-  },
-  { $addFields: {
-      automationRate: { $divide: ["$automatedClusters", "$totalClusters"] },
-      pauseRate: { $divide: ["$pausedClusters", "$totalClusters"] }
-    }
-  }
-]
-```
+
+
+
+
+
+
+
+
+
+
 
 ## Embedding Charts
 
@@ -381,12 +298,7 @@ Your data refreshes automatically every 15 minutes via the `syncClusterStatusTri
 │                                                         │
 └─────────────────────────────────────────────────────────┘
 
-┌─────────────────────┬─────────────────────────────────┐
-│ Automation Adoption │ Operation Success Rate          │
-│                     │                                 │
-│   🥧 Pie Chart     │   🍩 Donut Chart               │
-│                     │                                 │
-└─────────────────────┴─────────────────────────────────┘
+
 ```
 
 ## Next Steps
