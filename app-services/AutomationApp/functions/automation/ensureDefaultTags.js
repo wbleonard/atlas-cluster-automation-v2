@@ -7,6 +7,8 @@ exports = async function(projectId = null, clusterName = null, debugMode = false
   if (projectId === "Hello world!") {
     console.log("🧪 TEST MODE: Ensuring default tags for test project");
     projectId = "6807d3a43dae3141f99d8aa0"; // Test project ID
+    projectId = "6813676f55ff275f7da84605"; // Performance
+    projectId = null; // Process All
     debugMode = true;
   }
 
@@ -42,27 +44,27 @@ exports = async function(projectId = null, clusterName = null, debugMode = false
       const currentProjectId = project.id;
       const projectName = project.name || `Project-${currentProjectId}`;
       
-      if (debugMode) {
-        console.log(`📂 Processing project: ${projectName} (${currentProjectId})`);
-      }
+      console.log(`\n📂 Processing project: ${projectName} (${currentProjectId})`);
+
 
       try {
         // Get clusters from Atlas API
         const clusters = await context.functions.execute("atlas/getProjectClusters", currentProjectId);
         
-        if (!clusters || !Array.isArray(clusters)) {
-          console.warn(`⚠️ No clusters found for project ${projectName}`);
+        if (!clusters || !Array.isArray(clusters) || clusters.length === 0) {
+          console.log(`ℹ️ No clusters found for project ${projectName}`);
           continue;
         }
 
         for (const cluster of clusters) {
           if (!cluster || !cluster.name) {
-            console.warn("⚠️ Skipping cluster without name");
+            console.log("⚠️ Skipping cluster without name");
             continue;
           }
 
           // Skip if processing specific cluster and this isn't it
           if (clusterName && cluster.name !== clusterName) {
+            console.log("⚠️ Skipping cluster name mismatch");
             continue;
           }
 
@@ -70,6 +72,58 @@ exports = async function(projectId = null, clusterName = null, debugMode = false
 
           if (debugMode) {
             console.log(`🔍 Checking tags for cluster: ${cluster.name}`);
+          }
+
+
+          // Proactively skip if cluster is paused
+          if (cluster.paused) {
+            console.log(`⏭️ Skipping paused cluster ${cluster.name} - tags cannot be updated while cluster is paused`);
+            // Log as skipped
+            try {
+              const activityCollection = await context.functions.execute("collections/getActivityLogsCollection");
+              await activityCollection.insertOne({
+                timestamp: new Date(),
+                action: "DEFAULT_TAGS_SKIPPED",
+                projectId: currentProjectId,
+                clusterName: cluster.name,
+                details: {
+                  reason: "Cluster is paused - tags cannot be updated",
+                  attemptedTags: [],
+                  totalTagsAttempted: 0
+                },
+                status: "SKIPPED",
+                triggerSource: "AUTOMATED_ENFORCEMENT"
+              });
+            } catch (logError) {
+              console.warn(`⚠️ Failed to log skip reason for ${cluster.name}: ${logError.message}`);
+            }
+            continue;
+          }
+
+          // Proactively skip if cluster is a shared tier (M0, M2, M5)
+          const instanceSize = cluster.providerSettings && cluster.providerSettings.instanceSizeName;
+          if (["M0", "M2", "M5"].includes(instanceSize)) {
+            console.log(`⏭️ Skipping free/shared tier cluster ${cluster.name} (${instanceSize}) - API updates not supported`);
+            // Log as skipped
+            try {
+              const activityCollection = await context.functions.execute("collections/getActivityLogsCollection");
+              await activityCollection.insertOne({
+                timestamp: new Date(),
+                action: "DEFAULT_TAGS_SKIPPED",
+                projectId: currentProjectId,
+                clusterName: cluster.name,
+                details: {
+                  reason: `Free/shared tier cluster (${instanceSize}) - API updates not supported`,
+                  attemptedTags: [],
+                  totalTagsAttempted: 0
+                },
+                status: "SKIPPED",
+                triggerSource: "AUTOMATED_ENFORCEMENT"
+              });
+            } catch (logError) {
+              console.warn(`⚠️ Failed to log skip reason for ${cluster.name}: ${logError.message}`);
+            }
+            continue;
           }
 
           // Check which required tags are missing
@@ -157,13 +211,12 @@ exports = async function(projectId = null, clusterName = null, debugMode = false
                 continue; // Continue to next cluster
               }
               
-              // Check if cluster is paused or transitioning
+              // Check if cluster is transitioning (busy)
               if (tagError.message && (
-                tagError.message.includes("while it is paused") ||
                 tagError.message.includes("being paused") ||
                 tagError.message.includes("Cluster is busy")
               )) {
-                console.log(`⏭️ Skipping paused cluster ${cluster.name} - tags cannot be updated while cluster is paused or transitioning`);
+                console.log(`⏭️ Skipping transitioning cluster ${cluster.name} - tags cannot be updated while cluster is busy`);
                 
                 // Log as skipped rather than failed
                 try {
@@ -174,7 +227,7 @@ exports = async function(projectId = null, clusterName = null, debugMode = false
                     projectId: currentProjectId,
                     clusterName: cluster.name,
                     details: {
-                      reason: "Cluster is paused or transitioning - tags cannot be updated",
+                      reason: "Cluster is transitioning - tags cannot be updated",
                       attemptedTags: missingTags,
                       totalTagsAttempted: missingTags.length
                     },
