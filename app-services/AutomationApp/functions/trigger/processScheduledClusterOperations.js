@@ -57,7 +57,7 @@ exports = async function() {
             "setClusterPauseState",
             project.projectId,
             cluster.name,
-            true, // true to pause
+            "PAUSED",
             actor
           );
           console.log(`processScheduledClusterOperations: setClusterPauseState result for PAUSE of ${cluster.name}:`, JSON.stringify(result));

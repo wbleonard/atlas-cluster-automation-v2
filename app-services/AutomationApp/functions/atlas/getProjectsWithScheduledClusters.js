@@ -12,11 +12,15 @@ exports = async function() {
 
     console.log(`getProjectsWithScheduledClusters: Found ${projects.length} projects. Checking for scheduled clusters...`);
 
+
     // Process each project
     for (const project of projects) {
       const projectId = project.id;
       const projectName = project.name;
-      
+
+      // Section header for project
+      console.log(`\n📂 Project: ${projectName} (${projectId})`);
+
       try {
         // Use our existing utility function to fetch clusters for this project
         const clusters = await context.functions.execute("atlas/getProjectClusters", projectId);
@@ -26,18 +30,18 @@ exports = async function() {
         for (const cluster of clusters) {
           const scheduleTag = cluster.tags?.find(tag => tag.key === 'automation:pause-schedule');
           const enabledTag = cluster.tags?.find(tag => tag.key === 'automation:enabled');
-          
+
           if (scheduleTag) {
             // Check if automation is explicitly disabled
             if (enabledTag && enabledTag.value.toLowerCase() === 'false') {
-              console.log(`getProjectsWithScheduledClusters: Automation disabled for cluster ${cluster.name} in project ${projectName} (automation:enabled=false)`);
+              console.log(`  ⏭️ Skipped: ${cluster.name} (automation:enabled=false)`);
               continue; // Skip this cluster
             }
-            
+
             try {
               // Parse the schedule using our utility function
               const schedule = await context.functions.execute("tags/parseScheduleTag", scheduleTag.value);
-              
+
               scheduledClusters.push({
                 name: cluster.name,
                 paused: cluster.paused || false,
@@ -48,10 +52,10 @@ exports = async function() {
                 mongoDBVersion: cluster.mongoDBMajorVersion,
                 createDate: cluster.createDate
               });
-              
-              console.log(`getProjectsWithScheduledClusters: Found scheduled cluster ${cluster.name} in project ${projectName} (automation: ${enabledTag ? enabledTag.value : 'enabled by default'})`);
+
+              console.log(`  ✅ Scheduled: ${cluster.name} (automation: ${enabledTag ? enabledTag.value : 'enabled by default'})`);
             } catch (parseError) {
-              console.error(`getProjectsWithScheduledClusters: Invalid schedule tag for cluster ${cluster.name} in project ${projectName}: ${parseError.message}`);
+              console.log(`  ❌ Invalid schedule: ${cluster.name} - ${parseError.message}`);
               // Skip this cluster but continue processing others
             }
           }
@@ -64,17 +68,17 @@ exports = async function() {
             projectName: projectName,
             clusters: scheduledClusters
           });
-          
-          console.log(`getProjectsWithScheduledClusters: Project ${projectName} has ${scheduledClusters.length} scheduled cluster(s)`);
+
+          console.log(`  📊 ${scheduledClusters.length} scheduled cluster(s) found`);
         }
 
       } catch (error) {
-        console.error(`getProjectsWithScheduledClusters: Error processing project ${projectName} (${projectId}): ${error.message}`);
+        console.log(`  ❌ Error processing project: ${projectName} (${projectId}): ${error.message}`);
         // Continue with next project
       }
     }
 
-    console.log(`getProjectsWithScheduledClusters: Found ${projectsWithScheduledClusters.length} projects with scheduled clusters`);
+    console.log(`\n✅ Found ${projectsWithScheduledClusters.length} projects with scheduled clusters`);
     return projectsWithScheduledClusters;
 
   } catch (error) {
