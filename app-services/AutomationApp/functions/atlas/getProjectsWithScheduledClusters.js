@@ -19,7 +19,8 @@ exports = async function() {
       const projectName = project.name;
 
       // Section header for project
-      console.log(`\n📂 Project: ${projectName} (${projectId})`);
+      console.log(``)
+      console.log(`📂 Project: ${projectName} (${projectId})`);
 
       try {
         // Use our existing utility function to fetch clusters for this project
@@ -78,7 +79,8 @@ exports = async function() {
       }
     }
 
-    console.log(`\n✅ Found ${projectsWithScheduledClusters.length} projects with scheduled clusters`);
+    console.log(``)
+    console.log(`✅ Found ${projectsWithScheduledClusters.length} projects with scheduled clusters`);
     return projectsWithScheduledClusters;
 
   } catch (error) {

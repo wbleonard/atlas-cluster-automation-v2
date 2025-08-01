@@ -24,7 +24,7 @@ exports = async function(projectId = null, clusterName = null, debugMode = false
       
       // Automation tags
       'automation:enabled': 'true',
-      'automation:pause-schedule': null  // Will be set to null, meaning no schedule by default
+      'automation:pause-schedule': 'days:0.1.2.3.4.5.6:hour:22:timezone:America-New_York'  // Default schedule: every day at 22:00 America/New_York
     };
 
     // Get projects to process
@@ -44,7 +44,8 @@ exports = async function(projectId = null, clusterName = null, debugMode = false
       const currentProjectId = project.id;
       const projectName = project.name || `Project-${currentProjectId}`;
       
-      console.log(`\n📂 Processing project: ${projectName} (${currentProjectId})`);
+      console.log(``);
+      console.log(`📂 Processing project: ${projectName} (${currentProjectId})`);
 
 
       try {

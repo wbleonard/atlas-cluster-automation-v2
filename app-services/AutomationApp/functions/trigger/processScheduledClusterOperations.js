@@ -22,6 +22,7 @@ exports = async function() {
       continue;
     }
 
+    console.log(``);
     console.log(`processScheduledClusterOperations: Processing project ${project.projectId} (${project.projectName}) with ${project.clusters.length} scheduled cluster(s).`);
 
     for (const cluster of project.clusters) {
