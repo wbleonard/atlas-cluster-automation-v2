@@ -20,37 +20,17 @@
         "disable_arg_logs": true
     },
     {
-        "name": "utility/getProjects",
+        "name": "atlas/getProjects",
         "private": true,
         "disable_arg_logs": true
     },
     {
-        "name": "utility/getProjectClusters",
+        "name": "atlas/getProjectClusters",
         "private": true,
         "disable_arg_logs": true
     },
     {
-        "name": "utility/getProjectCluster",
-        "private": true,
-        "disable_arg_logs": true
-    },
-    {
-        "name": "utility/getClusterOpsCollection",
-        "private": true,
-        "disable_arg_logs": true
-    },
-    {
-        "name": "trigger/syncProjectClusters",
-        "private": false,
-        "disable_arg_logs": true
-    },
-    {
-        "name": "ztrash/enforcePauseSchedule",
-        "private": true,
-        "disable_arg_logs": true
-    },
-    {
-        "name": "utility/reconcileClustersArray",
+        "name": "atlas/getProjectCluster",
         "private": true,
         "disable_arg_logs": true
     },
@@ -60,13 +40,9 @@
         "disable_arg_logs": true
     },
     {
-        "name": "utility/getActivityLogsCollection",
+        "name": "collections/getActivityLogsCollection",
         "private": true,
         "disable_arg_logs": true
-    },
-    {
-        "name": "trigger/logClusterAutomationChange",
-        "private": true
     },
     {
         "name": "trigger/processScheduledClusterOperations",
@@ -74,13 +50,91 @@
         "disable_arg_logs": true
     },
     {
-        "name": "ui/getClusterList",
-        "private": false,
+        "name": "tags/parseScheduleTag",
+        "private": true,
         "disable_arg_logs": true
     },
     {
-        "name": "ui/updateClusterMetadata",
-        "private": false,
+        "name": "tags/getClusterScheduleFromTags",
+        "private": true,
+        "disable_arg_logs": true
+    },
+    {
+        "name": "atlas/getProjectsWithScheduledClusters",
+        "private": true,
+        "disable_arg_logs": true
+    },
+    {
+        "name": "tags/removeClusterScheduleTag",
+        "private": true,
+        "disable_arg_logs": true
+    },
+    {
+        "name": "dev/testScheduleTags",
+        "private": true,
+        "disable_arg_logs": true
+    },
+    {
+        "name": "tags/setClusterScheduleTag",
+        "private": true,
+        "disable_arg_logs": true
+    },
+    {
+        "name": "tags/updateClusterTags",
+        "private": true,
+        "disable_arg_logs": true
+    },
+    {
+        "name": "automation/setClusterAutomationEnabled",
+        "private": true,
+        "disable_arg_logs": true
+    },
+    {
+        "name": "automation/getClusterAutomationStatus",
+        "private": true,
+        "disable_arg_logs": true
+    },
+    {
+        "name": "automation/enableAutomationForProject",
+        "private": true,
+        "disable_arg_logs": true
+    },
+    {
+        "name": "automation/setOrgWideSchedule",
+        "private": true,
+        "disable_arg_logs": true
+    },
+    {
+        "name": "collections/getClusterStatusCollection",
+        "private": true,
+        "disable_arg_logs": true
+    },
+    {
+        "name": "collections/refreshClusterStatus",
+        "private": true,
+        "disable_arg_logs": true
+    },
+    {
+        "name": "trigger/syncClusterStatus",
+        "private": true
+    },
+    {
+        "name": "collections/refreshDashboardData",
+        "private": true,
+        "disable_arg_logs": true
+    },
+    {
+        "name": "automation/ensureDefaultTags",
+        "private": true,
+        "disable_arg_logs": true
+    },
+    {
+        "name": "trigger/ensureDefaultTagsScheduled",
+        "private": true
+    },
+    {
+        "name": "collections/getDashboardSummaryCollection",
+        "private": true,
         "disable_arg_logs": true
     }
 ]
