@@ -5,6 +5,6 @@
     "schedule": "0 0 * * 1",
     "skip_catchup_events": false
   },
-  "function_name": "ensureDefaultTagsScheduled",
+  "function_name": "trigger/ensureDefaultTagsScheduled",
   "disabled": true
 }
