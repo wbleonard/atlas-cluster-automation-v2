@@ -148,6 +148,8 @@ The application leverages MongoDB Atlas App Services for **tag-based automation*
 - `collections/getClusterStatusCollection`: Get handle to the cluster status collection for reporting
 - `collections/refreshClusterStatus`: Update reporting data from Atlas API + tags
 - `collections/getActivityLogsCollection`: Get a handle to the activity_logs collection
+- `collections/getRecentActivity`: Retrieve recent activity logs with filtering options
+- `collections/getActivityStats`: Get aggregated statistics and metrics from activity logs
 
 
 
@@ -259,11 +261,38 @@ await setClusterScheduleTag(projectId, "dev-cluster", 9, [0,6], "America/New_Yor
 await setClusterScheduleTag(projectId, "prod-cluster", 22, [1,2,3,4,5], "America/New_York");
 ```
 
-### Activity Logging Setup (Optional)
+### Activity Logging & Monitoring
+
+The system automatically logs all automation activities to the `activity_logs` collection for audit trails and monitoring.
+
+**View Recent Activity:**
 ```javascript
-// Configure activity logging collection
-await getActivityLogsCollection(); // Sets up collection if needed
+// Get last 50 activities from the past 24 hours
+await getRecentActivity(50, 24);
+
+// Get only failed operations from the past 7 days
+await getRecentActivity(100, 168, null, "FAILED");
+
+// Get cluster pause activities from the past 48 hours
+await getRecentActivity(50, 48, "CLUSTER_PAUSE", null);
 ```
+
+**Get Activity Statistics:**
+```javascript
+// Get statistics for the last 24 hours
+await getActivityStats(24);
+
+// Get weekly statistics
+await getActivityStats(168);
+```
+
+**Visualize in Atlas Charts:**
+See `ATLAS_DASHBOARD_SETUP.md` for detailed instructions on creating activity log visualizations including:
+- Activity timeline charts
+- Success rate gauges
+- Failed operations alerts
+- Most active clusters
+- Activity breakdown by type and trigger source
 
 ## Tag Format Reference
 

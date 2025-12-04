@@ -136,5 +136,20 @@
         "name": "collections/getDashboardSummaryCollection",
         "private": true,
         "disable_arg_logs": true
+    },
+    {
+        "name": "collections/getRecentActivity",
+        "private": false,
+        "disable_arg_logs": true
+    },
+    {
+        "name": "collections/getActivityStats",
+        "private": false,
+        "disable_arg_logs": true
+    },
+    {
+        "name": "collections/checkActivityLogs",
+        "private": false,
+        "disable_arg_logs": true
     }
 ]
